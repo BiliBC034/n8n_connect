@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-// Cambiado para usar ChangeNotifier
 class LocaleService extends ChangeNotifier {
   static const String _localeKey = 'selectedLocale';
   late SharedPreferences _prefs;
@@ -14,7 +13,7 @@ class LocaleService extends ChangeNotifier {
     // Load locale is now called explicitly after initialization
   }
 
-  // Método para cargar el locale guardado
+  // Loads the saved locale
   Future<void> loadLocale() async {
     _prefs = await SharedPreferences.getInstance();
     final languageCode = _prefs.getString('${_localeKey}_languageCode');
@@ -23,9 +22,9 @@ class LocaleService extends ChangeNotifier {
     if (languageCode != null) {
       _locale = Locale(languageCode, countryCode);
     } else {
-      _locale = null; // Indica usar el del sistema
+      _locale = null; // Null means: use the system locale
     }
-    notifyListeners(); // Notificar después de cargar
+    notifyListeners(); // Notify after loading
   }
 
   // Set the locale
@@ -38,21 +37,19 @@ class LocaleService extends ChangeNotifier {
     } else {
       await _prefs.remove('${_localeKey}_countryCode');
     }
-    notifyListeners(); // Notificar cambio
+    notifyListeners(); // Notify the change
   }
 
   // Reset to device locale
   Future<void> useDeviceLocale() async {
-    if (_locale == null) return; // Ya está usando el del sistema
+    if (_locale == null) return; // Already using the system locale
     _locale = null;
     await _prefs.remove('${_localeKey}_languageCode');
     await _prefs.remove('${_localeKey}_countryCode');
-    notifyListeners(); // Notificar cambio
+    notifyListeners(); // Notify the change
   }
 
-  // --- getSupportedLocale no necesita cambios ---
   Locale? getSupportedLocale(Locale? locale, List<Locale> supportedLocales) {
-    // ... (código existente sin cambios)
     if (locale == null) return null; // Use system default
 
     // First try for an exact match with country code

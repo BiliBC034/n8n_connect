@@ -1,122 +1,122 @@
-# Servidor n8n para n8n Connect
+# n8n server for n8n Connect
 
-Esta carpeta contiene las plantillas de workflows y el esquema de tablas que necesita tu servidor de n8n para que la app Android muestre tus apps y ejecute acciones. Sirve igual para una persona que para un agente de IA con acceso a shell y, si lo tiene, al MCP de n8n.
+This folder contains the workflow templates and the table schema that your n8n server needs so the Android app can show your apps and run actions. It works equally well for a person or for an AI agent with shell access and, if it has one, access to the n8n MCP.
 
-El protocolo completo está en [docs/PROTOCOL.md](../docs/PROTOCOL.md). Las plantillas no contienen secretos ni IDs reales: usan placeholders `REPLACE_...` que tienes que sustituir (ver [§4](#4-referencia-de-placeholders)).
+The full protocol is in [docs/PROTOCOL.md](../docs/PROTOCOL.md). The templates contain no secrets or real IDs: they use `REPLACE_...` placeholders that you must replace (see [§4](#4-placeholder-reference)).
 
-## 1. Contenido de esta carpeta
+## 1. What's in this folder
 
-| Archivo | Workflow en n8n | Qué hace | Endpoints |
+| File | Workflow in n8n | What it does | Endpoints |
 |---|---|---|---|
-| `workflows/core.json` | n8n Connect · Core | Información del servidor, inicio de sesión con Firebase, catálogo de apps y logout de dispositivo | `GET n8n-connect/info` (pública), `POST n8n-connect/auth` (ID token de Firebase), `GET n8n-connect/apps` (JWT), `POST n8n-connect/logout` (JWT) |
-| `workflows/share.json` | n8n Connect · Compartir | Recibe texto o enlaces de «Compartir → n8n Connect» y los guarda en `nc_inbox` | `POST n8n-connect/share` (JWT) |
-| `workflows/app-tools.json` | n8n Connect · App · Herramientas | App de demo: panel en vivo, alarma, formulario y acciones del móvil | `GET n8n-connect/apps/tools`, `POST n8n-connect/apps/tools/echo`, `POST n8n-connect/apps/tools/alarm` (JWT) |
-| `workflows/app-access.json` | n8n Connect · Acceso a app | Sub-workflow: decide si un email puede usar una app (según `nc_apps`). Lo llama `app-tools` | Ninguno (se llama desde otro workflow) |
-| `workflows/send-to-phone.json` | n8n Connect · Enviar al móvil | Sub-workflow: envía un mensaje FCM de datos a los dispositivos del usuario. Lo llama `app-tools` | Ninguno (se llama desde otro workflow) |
-| `data-tables.json` | No es un workflow | Esquema de las cuatro tablas (`nc_users`, `nc_devices`, `nc_apps`, `nc_inbox`) y filas de ejemplo | Ninguno |
+| `workflows/core.json` | n8n Connect · Core | Server information, Firebase sign-in, app catalog and device logout | `GET n8n-connect/info` (public), `POST n8n-connect/auth` (Firebase ID token), `GET n8n-connect/apps` (JWT), `POST n8n-connect/logout` (JWT) |
+| `workflows/share.json` | n8n Connect · Share | Receives text or links from "Share → n8n Connect" and saves them to `nc_inbox` | `POST n8n-connect/share` (JWT) |
+| `workflows/app-tools.json` | n8n Connect · App · Tools | Demo app: live panel, alarm, form and phone actions | `GET n8n-connect/apps/tools`, `POST n8n-connect/apps/tools/echo`, `POST n8n-connect/apps/tools/alarm` (JWT) |
+| `workflows/app-access.json` | n8n Connect · App access | Sub-workflow: decides whether an email can use an app (based on `nc_apps`). Called by `app-tools` | None (called from another workflow) |
+| `workflows/send-to-phone.json` | n8n Connect · Send to phone | Sub-workflow: sends a FCM data message to the user's devices. Called by `app-tools` | None (called from another workflow) |
+| `data-tables.json` | Not a workflow | Schema of the four tables (`nc_users`, `nc_devices`, `nc_apps`, `nc_inbox`) and sample rows | None |
 
-Las plantillas de `workflows/` tienen solo las claves `name`, `nodes`, `connections` y `settings`. Sirven para «Import from File» en la UI y para `POST /api/v1/workflows` de la API pública.
+The templates in `workflows/` only have the keys `name`, `nodes`, `connections` and `settings`. They are used for "Import from File" in the UI and for `POST /api/v1/workflows` in the public API.
 
-## 2. Requisitos
+## 2. Requirements
 
-- **n8n 2.x con Data tables** (las plantillas se hicieron con esa versión).
-- **URL pública HTTPS** del servidor. La app rechaza `http://`.
-- **Proyecto de Firebase** con:
-  - Una app Android con el package name `me.bilibc.n8n_connect`.
-  - Authentication con el proveedor Email/contraseña (y, si quieres, Google).
-  - Cloud Messaging, para los push.
-  - Una cuenta de servicio del proyecto con acceso a FCM.
-- **Acceso a la API de n8n** (una API key), si vas a usar la vía por API o el agente.
+- **n8n 2.x with Data tables** (the templates were built with that version).
+- **Public HTTPS URL** for the server. The app rejects `http://`.
+- **Firebase project** with:
+  - An Android app with the package name `me.bilibc.n8n_connect`.
+  - Authentication with the Email/Password provider (and, if you want, Google).
+  - Cloud Messaging, for push notifications.
+  - A service account for the project with access to FCM.
+- **Access to the n8n API** (an API key), if you are going to use the API route or the agent.
 
-## 3. Puesta en marcha
+## 3. Setup
 
-Ten a mano estos valores antes de empezar. Ninguno debe acabar en el repositorio.
+Have these values at hand before you start. None of them should end up in the repository.
 
 ### a. Firebase
 
-Datos que necesitas (en la consola de Firebase, Configuración del proyecto; los nombres de pantalla pueden variar según el idioma y la versión de la consola):
+Data you need (in the Firebase console, Project settings; the labels on screen may vary by language and console version):
 
-| Dato | Dónde sale | Va en |
+| Item | Where to find it | Goes in |
 |---|---|---|
-| Clave de API web | Configuración del proyecto → General | `REPLACE_FIREBASE_WEB_API_KEY` |
-| ID del proyecto | Configuración del proyecto → General | `REPLACE_FIREBASE_PROJECT_ID` |
-| JSON de la cuenta de servicio (email y clave privada) | Configuración del proyecto → Cuentas de servicio → Generar nueva clave privada | Credencial `n8n Connect FCM` |
+| Web API key | Project settings → General | `REPLACE_FIREBASE_WEB_API_KEY` |
+| Project ID | Project settings → General | `REPLACE_FIREBASE_PROJECT_ID` |
+| Service account JSON (email and private key) | Project settings → Service accounts → Generate new private key | Credential `n8n Connect FCM` |
 
-**Cómo comprobarlo:** el ID del proyecto tiene que ser exactamente el que usa la app. Si no coincide, la app muestra `wrong_firebase_project` (ver [§6](#6-problemas-frecuentes)). El JSON de la cuenta de servicio es un secreto: guárdalo fuera del repo y no lo pegues en un chat.
+**How to check:** the project ID must be exactly the one the app uses. If it does not match, the app shows `wrong_firebase_project` (see [§6](#6-troubleshooting)). The service account JSON is a secret: store it outside the repo and do not paste it into a chat.
 
-### b. Credenciales en n8n
+### b. Credentials in n8n
 
-Crea dos credenciales con estos nombres exactos.
+Create two credentials with these exact names.
 
-**`n8n Connect JWT`** (tipo *JWT Auth*, `jwtAuth`):
+**`n8n Connect JWT`** (type *JWT Auth*, `jwtAuth`):
 - Key Type: *Passphrase*.
-- Secret: un secreto aleatorio largo. Genéralo con `openssl rand -base64 48`.
+- Secret: a long random secret. Generate it with `openssl rand -base64 48`.
 - Algorithm: `HS256`.
 
-**`n8n Connect FCM`** (tipo *Google Service Account API*, `googleApi`):
-- Email y clave privada de la cuenta de servicio (del JSON del paso a).
+**`n8n Connect FCM`** (type *Google Service Account API*, `googleApi`):
+- Email and private key of the service account (from the JSON in step a).
 - Scope: `https://www.googleapis.com/auth/firebase.messaging`.
-- Se usa en el nodo HTTP Request de `send-to-phone` (la plantilla ya lo tiene configurado).
+- It is used by the HTTP Request node in `send-to-phone` (the template already has it configured).
 
-Los nombres exactos de los campos dependen de tu versión de n8n. Consúltalos con la API:
+The exact field names depend on your n8n version. Check them with the API:
 
 ```bash
 curl -sS "$N8N_URL/api/v1/credentials/schema/jwtAuth" -H "X-N8N-API-KEY: $N8N_API_KEY"
 curl -sS "$N8N_URL/api/v1/credentials/schema/googleApi" -H "X-N8N-API-KEY: $N8N_API_KEY"
 ```
 
-Para crearlas por API: `POST /api/v1/credentials` con `{"name": "...", "type": "jwtAuth", "data": {...}}`. Para crearlas en la UI: *Credentials → Create credential*.
+To create them through the API: `POST /api/v1/credentials` with `{"name": "...", "type": "jwtAuth", "data": {...}}`. To create them in the UI: *Credentials → Create credential*.
 
-**Cómo comprobarlo:** aparecen con esos nombres en *Credentials* (o en `list_credentials` si usas el MCP). El secreto JWT no aparece en ningún archivo del repo.
+**How to check:** they appear with those names under *Credentials* (or in `list_credentials` if you use the MCP). The JWT secret does not appear in any file in the repo.
 
-### c. Tablas de datos
+### c. Data tables
 
-Crea cuatro Data tables con estas columnas (tomadas de `data-tables.json`):
+Create four Data tables with these columns (taken from `data-tables.json`):
 
-| Tabla | Columnas (tipo) |
+| Table | Columns (type) |
 |---|---|
 | `nc_users` | `email` (string), `enabled` (boolean), `role` (string), `name` (string) |
 | `nc_devices` | `device_id` (string), `email` (string), `uid` (string), `name` (string), `platform` (string), `fcm_token` (string), `app_version` (string), `last_seen` (date) |
 | `nc_apps` | `app_id` (string), `name` (string), `description` (string), `icon` (string), `color` (string), `path` (string), `enabled` (boolean), `allowed_emails` (string), `sort` (number) |
 | `nc_inbox` | `email` (string), `text` (string), `subject` (string), `note` (string), `received_at` (date) |
 
-Dónde: en la UI, *Data tables*. Con el MCP de n8n, `create_data_table`. Este README no documenta crear tablas por API.
+Where: in the UI, *Data tables*. With the n8n MCP, `create_data_table`. This README does not document creating tables through the API.
 
-Filas de ejemplo (seeds de `data-tables.json`):
+Seed rows (from `data-tables.json`):
 
-- **`nc_users`**: una fila con `email` = tu email de Firebase **en minúsculas**, `enabled` = `true`, `role` = `admin`, `name` = tu nombre. Sin esta fila, el servidor rechaza tu cuenta.
-- **`nc_apps`**: una fila para la app de demo, con `app_id` = `tools`, `name` = `Herramientas`, `description` = `Alarma, panel en vivo, formulario y acciones del móvil`, `icon` = `bolt`, `color` = `#0EA5E9`, `path` = `n8n-connect/apps/tools`, `enabled` = `true`, `allowed_emails` = vacío (todos los usuarios habilitados), `sort` = `30`.
-- `nc_devices` y `nc_inbox` empiezan vacías. Las rellena el servidor.
+- **`nc_users`**: one row with `email` = your Firebase email **in lowercase**, `enabled` = `true`, `role` = `admin`, `name` = your name. Without this row, the server rejects your account.
+- **`nc_apps`**: one row for the demo app, with `app_id` = `tools`, `name` = `Tools`, `description` = `Alarm, live panel, form and phone actions`, `icon` = `bolt`, `color` = `#0EA5E9`, `path` = `n8n-connect/apps/tools`, `enabled` = `true`, `allowed_emails` = empty (all enabled users), `sort` = `30`.
+- `nc_devices` and `nc_inbox` start empty. The server fills them.
 
-**Cómo comprobarlo:** las cuatro tablas existen con todas sus columnas y tipos; `nc_users` tiene tu fila; `nc_apps` tiene la fila `tools` con `enabled` = `true`.
+**How to check:** the four tables exist with all their columns and types; `nc_users` has your row; `nc_apps` has the `tools` row with `enabled` = `true`.
 
-### d. Importar los workflows
+### d. Importing the workflows
 
-Orden obligatorio, por tandas: **tanda 1** `app-access` y `send-to-phone` (sub-workflows); **tanda 2** `core` y `share`; **tanda 3** `app-tools`. Los sub-workflows van primero porque `app-tools` necesita sus IDs.
+Required order, in batches: **batch 1** `app-access` and `send-to-phone` (sub-workflows); **batch 2** `core` and `share`; **batch 3** `app-tools`. The sub-workflows go first because `app-tools` needs their IDs.
 
-Hay dos vías.
+There are two options.
 
-**Vía 1: UI.**
-1. *Import from File* con `workflows/app-access.json`. Repite con `send-to-phone.json`, `core.json`, `share.json` y `app-tools.json`, en ese orden.
-2. En cada workflow, abre los nodos marcados y elige:
-   - Credencial `n8n Connect JWT` en *Firmar sesión*, *Apps* y *Logout* (core); *Compartido desde el móvil* (share); *Pantalla*, *Formulario* y *Poner alarma* (app-tools).
-   - Credencial `n8n Connect FCM` en *Enviar FCM* (send-to-phone).
-   - Tabla por nombre: en core, *Buscar usuario* (`nc_users`), *Registrar dispositivo*, *Olvidar token push* y *Liberar token de otras cuentas* (`nc_devices`), *Leer apps* (`nc_apps`); en app-access, *Leer app* (`nc_apps`); en send-to-phone, *Dispositivos con push* (`nc_devices`); en share, *Guardar en nc_inbox* (`nc_inbox`); en app-tools, *Mis compartidos* (`nc_inbox`).
-   - Sub-workflow: en app-tools, *Acceso (Pantalla)*, *Acceso (Formulario)* y *Acceso (Alarma)* → `n8n Connect · Acceso a app`; *Enviar al móvil* → `n8n Connect · Enviar al móvil`.
-3. Los placeholders de texto no se eligen en un desplegable: edítalos a mano. Son `REPLACE_SERVER_NAME` (*Responder info* y *Responder sesión* de core), `REPLACE_FIREBASE_PROJECT_ID` (*Responder info* de core y la URL de *Enviar FCM* en send-to-phone) y `REPLACE_FIREBASE_WEB_API_KEY` (la URL de *Verificar ID token en Firebase* en core).
+**Option 1: UI.**
+1. *Import from File* with `workflows/app-access.json`. Repeat with `send-to-phone.json`, `core.json`, `share.json` and `app-tools.json`, in that order.
+2. In each workflow, open the marked nodes and choose:
+   - Credential `n8n Connect JWT` in *Sign session*, *Apps* and *Logout* (core); *Shared from phone* (share); *Screen*, *Form* and *Set alarm* (app-tools).
+   - Credential `n8n Connect FCM` in *Send FCM* (send-to-phone).
+   - Table by name: in core, *Find user* (`nc_users`), *Register device*, *Forget push token* and *Release token from other accounts* (`nc_devices`), *Read apps* (`nc_apps`); in app-access, *Read app* (`nc_apps`); in send-to-phone, *Devices with push* (`nc_devices`); in share, *Save to nc_inbox* (`nc_inbox`); in app-tools, *My shared items* (`nc_inbox`).
+   - Sub-workflow: in app-tools, *Access (Screen)*, *Access (Form)* and *Access (Alarm)* → `n8n Connect · App access`; *Send to phone* → `n8n Connect · Send to phone`.
+3. Text placeholders are not picked from a dropdown: edit them by hand. They are `REPLACE_SERVER_NAME` (*Respond info* and *Respond session* in core), `REPLACE_FIREBASE_PROJECT_ID` (*Respond info* in core and the URL of *Send FCM* in send-to-phone) and `REPLACE_FIREBASE_WEB_API_KEY` (the URL of *Verify ID token with Firebase* in core).
 
-**Vía 2: API.** Copia las plantillas fuera del repo, rellena los placeholders y importa con `POST /api/v1/workflows`. Importa en tres tandas, porque `app-tools` necesita los IDs de los dos sub-workflows.
+**Option 2: API.** Copy the templates outside the repo, fill in the placeholders and import with `POST /api/v1/workflows`. Import in three batches, because `app-tools` needs the IDs of the two sub-workflows.
 
-1. Guarda este script como `fill.py` **fuera del repo** (por ejemplo en `$HOME/n8n-connect-build/`). Solo sustituye los placeholders cuyas variables de entorno estén definidas:
+1. Save this script as `fill.py` **outside the repo** (for example in `$HOME/n8n-connect-build/`). It only replaces the placeholders whose environment variables are set:
 
    ```python
    import json, os, sys
    from pathlib import Path
 
-   src, out = Path(sys.argv[1]), Path(sys.argv[2])  # carpeta workflows del repo; carpeta de salida (fuera del repo)
+   src, out = Path(sys.argv[1]), Path(sys.argv[2])  # repo workflows folder; output folder (outside the repo)
    out.mkdir(parents=True, exist_ok=True)
 
-   names = {  # placeholder -> variable de entorno con el valor
+   names = {  # placeholder -> environment variable holding the value
        "REPLACE_CREDENTIAL_ID:n8n Connect JWT": "JWT_CRED_ID",
        "REPLACE_CREDENTIAL_ID:n8n Connect FCM": "FCM_CRED_ID",
        "REPLACE_DATA_TABLE_ID:nc_users": "DT_USERS",
@@ -146,140 +146,140 @@ Hay dos vías.
        (out / f.name).write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
    ```
 
-2. Exporta las variables (los valores reales solo en la shell, nunca en un archivo del repo). `SERVER_NAME` no debe llevar comillas dobles ni barras invertidas.
+2. Export the variables (real values only in the shell, never in a file in the repo). `SERVER_NAME` must not contain double quotes or backslashes.
 
-3. Define la función `import_wf`. Imprime el `id` del workflow. Si la respuesta no trae `id`, imprime el error y sale con código 1: ese error no es un ID y no debes usarlo. Está escrita como subshell, así que el `exit` no cierra tu terminal:
+3. Define the `import_wf` function. It prints the workflow's `id`. If the response has no `id`, it prints the error and exits with code 1: that error is not an ID and you must not use it. It is written as a subshell, so the `exit` does not close your terminal:
 
    ```bash
-   import_wf() ( # $1 = copia rellenada
+   import_wf() ( # $1 = filled copy
      resp=$(curl -sS -X POST "$N8N_URL/api/v1/workflows" \
        -H "X-N8N-API-KEY: $N8N_API_KEY" \
        -H "Content-Type: application/json" \
        --data-binary "@$1") || exit 1
-     printf '%s' "$resp" | python3 -c 'import json,sys; d=json.load(sys.stdin); sys.exit("Error al importar: " + json.dumps(d, ensure_ascii=False)) if "id" not in d else print(d["id"])' || exit 1
+     printf '%s' "$resp" | python3 -c 'import json,sys; d=json.load(sys.stdin); sys.exit("Import error: " + json.dumps(d, ensure_ascii=False)) if "id" not in d else print(d["id"])' || exit 1
    )
    ```
 
-4. **Tanda 1: sub-workflows.** Desde la raíz del repo, rellena las copias y comprueba **el archivo que vas a importar** con `grep REPLACE_ <archivo>` (no sobre toda la carpeta). Debe salir **vacío**; si imprime algo, no importes ese archivo. `app-access.json` solo necesita `DT_APPS`; `send-to-phone.json` necesita `FCM_CRED_ID`, `DT_DEVICES` y `FIREBASE_PROJECT_ID`.
+4. **Batch 1: sub-workflows.** From the repo root, fill in the copies and check **the file you are going to import** with `grep REPLACE_ <file>` (not the whole folder). The output must be **empty**; if it prints anything, do not import that file. `app-access.json` only needs `DT_APPS`; `send-to-phone.json` needs `FCM_CRED_ID`, `DT_DEVICES` and `FIREBASE_PROJECT_ID`.
 
    ```bash
    python3 -I "$HOME/n8n-connect-build/fill.py" n8n/workflows "$HOME/n8n-connect-build/out"
-   grep REPLACE_ "$HOME/n8n-connect-build/out/app-access.json"      # debe no imprimir nada
-   import_wf "$HOME/n8n-connect-build/out/app-access.json"          # anota el id impreso
-   grep REPLACE_ "$HOME/n8n-connect-build/out/send-to-phone.json"   # debe no imprimir nada
-   import_wf "$HOME/n8n-connect-build/out/send-to-phone.json"       # anota el id impreso
+   grep REPLACE_ "$HOME/n8n-connect-build/out/app-access.json"      # should print nothing
+   import_wf "$HOME/n8n-connect-build/out/app-access.json"          # note the printed id
+   grep REPLACE_ "$HOME/n8n-connect-build/out/send-to-phone.json"   # should print nothing
+   import_wf "$HOME/n8n-connect-build/out/send-to-phone.json"       # note the printed id
    ```
 
-5. **Tanda 2: core y share.** Mismo control: `grep REPLACE_` sobre cada archivo antes de importarlo.
+5. **Batch 2: core and share.** Same check: `grep REPLACE_` on each file before importing it.
 
    ```bash
-   grep REPLACE_ "$HOME/n8n-connect-build/out/core.json"    # debe no imprimir nada
-   import_wf "$HOME/n8n-connect-build/out/core.json"        # ningún otro workflow usa su id
-   grep REPLACE_ "$HOME/n8n-connect-build/out/share.json"   # debe no imprimir nada
-   import_wf "$HOME/n8n-connect-build/out/share.json"       # ningún otro workflow usa su id
+   grep REPLACE_ "$HOME/n8n-connect-build/out/core.json"    # should print nothing
+   import_wf "$HOME/n8n-connect-build/out/core.json"        # no other workflow uses its id
+   grep REPLACE_ "$HOME/n8n-connect-build/out/share.json"   # should print nothing
+   import_wf "$HOME/n8n-connect-build/out/share.json"       # no other workflow uses its id
    ```
 
-6. **Tanda 3: app-tools.** Exporta los IDs anotados en la tanda 1 (con tus valores reales, solo en la shell). Vuelve a ejecutar `fill.py`: solo `app-tools.json` cambia, porque es el único que usa `WF_*`. Comprueba ese archivo e impórtalo:
+6. **Batch 3: app-tools.** Export the IDs noted in batch 1 (with your real values, only in the shell). Run `fill.py` again: only `app-tools.json` changes, because it is the only one that uses `WF_*`. Check that file and import it:
 
    ```bash
-   export WF_APP_ACCESS=id-anotado-en-la-tanda-1
-   export WF_SEND_TO_PHONE=id-anotado-en-la-tanda-1
+   export WF_APP_ACCESS=id-noted-in-batch-1
+   export WF_SEND_TO_PHONE=id-noted-in-batch-1
    python3 -I "$HOME/n8n-connect-build/fill.py" n8n/workflows "$HOME/n8n-connect-build/out"
-   grep REPLACE_ "$HOME/n8n-connect-build/out/app-tools.json"   # debe no imprimir nada
+   grep REPLACE_ "$HOME/n8n-connect-build/out/app-tools.json"   # should print nothing
    import_wf "$HOME/n8n-connect-build/out/app-tools.json"
    ```
 
-**Cómo comprobarlo:** en *Workflows* aparecen los cinco con los nombres de la tabla de arriba. No importes dos veces el mismo archivo: crea duplicados.
+**How to check:** in *Workflows*, all five appear with the names from the table above. Do not import the same file twice: it creates duplicates.
 
-### e. Publicar
+### e. Publishing
 
-Publica o activa **core**, **share** y **app-tools**. Según tu versión, también puede hacer falta publicar **app-access** y **send-to-phone**.
+Publish or activate **core**, **share** and **app-tools**. Depending on your version, you may also need to publish **app-access** and **send-to-phone**.
 
-- UI (n8n 2.x): botón **Publish** de cada workflow.
-- API: `POST /api/v1/workflows/{id}/activate`. Esta ruta no está verificada para tu versión de n8n; si devuelve 404 o 405, publica desde la UI.
+- UI (n8n 2.x): the **Publish** button of each workflow.
+- API: `POST /api/v1/workflows/{id}/activate`. This route is not verified for your n8n version; if it returns 404 or 405, publish from the UI.
 - MCP: `publish_workflow`.
 
-**Cómo comprobarlo:** los webhooks de producción responden (`/webhook/...`, no `/webhook-test/...`). Un 404 significa que el workflow no está publicado o que la ruta no coincide.
+**How to check:** production webhooks respond (`/webhook/...`, not `/webhook-test/...`). A 404 means the workflow is not published or the path does not match.
 
-### f. Probar
+### f. Testing
 
-1. Información del servidor (pública):
+1. Server information (public):
 
    ```bash
    curl -sS https://n8n.example.com/webhook/n8n-connect/info
    ```
 
-   Debe devolver JSON con cuatro campos:
+   It must return JSON with four fields:
    - `service`: `"n8n-connect"`.
    - `protocol`: `1`.
-   - `name`: el valor que pusiste en `REPLACE_SERVER_NAME`.
-   - `firebaseProjectId`: el ID del proyecto de Firebase (`REPLACE_FIREBASE_PROJECT_ID`).
+   - `name`: the value you set in `REPLACE_SERVER_NAME`.
+   - `firebaseProjectId`: the Firebase project ID (`REPLACE_FIREBASE_PROJECT_ID`).
 
-2. Rutas protegidas sin token:
+2. Protected paths without a token:
 
    ```bash
    curl -i https://n8n.example.com/webhook/n8n-connect/apps
    ```
 
-   Debe responder 401 o 403 sin JWT (PROTOCOL §2: n8n responde 401/403 en texto plano).
+   It must respond with 401 or 403 without a JWT (PROTOCOL §2: n8n responds 401/403 as plain text).
 
-3. En el móvil: instala la app, escribe la URL de tu servidor (`https://n8n.example.com`; la app quita rutas como `/webhook`), inicia sesión con la cuenta de `nc_users` y comprueba que **Herramientas** aparece en el catálogo. Ábrela: debe mostrar el panel en vivo, y el formulario debe responder «n8n recibió el formulario».
+3. On the phone: install the app, enter your server URL (`https://n8n.example.com`; the app strips paths such as `/webhook`), sign in with the account in `nc_users` and check that **Tools** appears in the catalog. Open it: it must show the live panel, and the form must respond "n8n received the form".
 
-Comprobación extra de la sesión: `curl -i -X POST https://n8n.example.com/webhook/n8n-connect/auth` sin token. Según el código de *Validar identidad*, debe responder 401 con `error.code` = `invalid_token`. Esto no está probado en tu despliegue.
+Extra session check: `curl -i -X POST https://n8n.example.com/webhook/n8n-connect/auth` without a token. According to the code in *Validate identity*, it must respond 401 with `error.code` = `invalid_token`. This has not been tested in your deployment.
 
-## 4. Referencia de placeholders
+## 4. Placeholder reference
 
-| Placeholder | Qué poner | De dónde sale | Archivo y nodos |
+| Placeholder | What to put | Where it comes from | File and nodes |
 |---|---|---|---|
-| `REPLACE_CREDENTIAL_ID:n8n Connect JWT` | ID de la credencial JWT | Lo asigna n8n al crear `n8n Connect JWT` (o `list_credentials`) | `core.json`: Firmar sesión, Apps, Logout. `share.json`: Compartido desde el móvil. `app-tools.json`: Pantalla, Formulario, Poner alarma |
-| `REPLACE_CREDENTIAL_ID:n8n Connect FCM` | ID de la credencial Google Service Account | Lo asigna n8n al crear `n8n Connect FCM` | `send-to-phone.json`: Enviar FCM |
-| `REPLACE_DATA_TABLE_ID:nc_users` | ID de la tabla `nc_users` | Data tables (`search_data_tables` con MCP) | `core.json`: Buscar usuario |
-| `REPLACE_DATA_TABLE_ID:nc_devices` | ID de la tabla `nc_devices` | Igual | `core.json`: Registrar dispositivo, Olvidar token push, Liberar token de otras cuentas. `send-to-phone.json`: Dispositivos con push |
-| `REPLACE_DATA_TABLE_ID:nc_apps` | ID de la tabla `nc_apps` | Igual | `core.json`: Leer apps. `app-access.json`: Leer app |
-| `REPLACE_DATA_TABLE_ID:nc_inbox` | ID de la tabla `nc_inbox` | Igual | `share.json`: Guardar en nc_inbox. `app-tools.json`: Mis compartidos |
-| `REPLACE_WORKFLOW_ID:app-access` | ID del workflow «n8n Connect · Acceso a app» | Su id al importarlo (UI: el de la URL; API: el `id` de la respuesta) | `app-tools.json`: Acceso (Pantalla), Acceso (Formulario), Acceso (Alarma) |
-| `REPLACE_WORKFLOW_ID:send-to-phone` | ID del workflow «n8n Connect · Enviar al móvil» | Igual | `app-tools.json`: Enviar al móvil |
-| `REPLACE_FIREBASE_WEB_API_KEY` | Clave de API web de Firebase | Configuración del proyecto → General | `core.json`: URL de Verificar ID token en Firebase (`identitytoolkit.../accounts:lookup?key=...`) |
-| `REPLACE_FIREBASE_PROJECT_ID` | ID del proyecto de Firebase | Configuración del proyecto → General | `core.json`: Responder info (`firebaseProjectId`). `send-to-phone.json`: URL de Enviar FCM (`fcm.googleapis.com/v1/projects/...`) |
-| `REPLACE_SERVER_NAME` | Nombre visible del servidor (sin comillas dobles ni barras invertidas) | Lo eliges tú | `core.json`: Responder info (`name`) y Responder sesión (`server.name`) |
+| `REPLACE_CREDENTIAL_ID:n8n Connect JWT` | JWT credential ID | Assigned by n8n when you create `n8n Connect JWT` (or `list_credentials`) | `core.json`: Sign session, Apps, Logout. `share.json`: Shared from phone. `app-tools.json`: Screen, Form, Set alarm |
+| `REPLACE_CREDENTIAL_ID:n8n Connect FCM` | ID of the Google Service Account credential | Assigned by n8n when you create `n8n Connect FCM` | `send-to-phone.json`: Send FCM |
+| `REPLACE_DATA_TABLE_ID:nc_users` | ID of the `nc_users` table | Data tables (`search_data_tables` with MCP) | `core.json`: Find user |
+| `REPLACE_DATA_TABLE_ID:nc_devices` | ID of the `nc_devices` table | Same | `core.json`: Register device, Forget push token, Release token from other accounts. `send-to-phone.json`: Devices with push |
+| `REPLACE_DATA_TABLE_ID:nc_apps` | ID of the `nc_apps` table | Same | `core.json`: Read apps. `app-access.json`: Read app |
+| `REPLACE_DATA_TABLE_ID:nc_inbox` | ID of the `nc_inbox` table | Same | `share.json`: Save to nc_inbox. `app-tools.json`: My shared items |
+| `REPLACE_WORKFLOW_ID:app-access` | ID of the workflow "n8n Connect · App access" | Its ID when imported (UI: the one in the URL; API: the `id` in the response) | `app-tools.json`: Access (Screen), Access (Form), Access (Alarm) |
+| `REPLACE_WORKFLOW_ID:send-to-phone` | ID of the workflow "n8n Connect · Send to phone" | Same | `app-tools.json`: Send to phone |
+| `REPLACE_FIREBASE_WEB_API_KEY` | Firebase web API key | Project settings → General | `core.json`: URL of Verify ID token with Firebase (`identitytoolkit.../accounts:lookup?key=...`) |
+| `REPLACE_FIREBASE_PROJECT_ID` | Firebase project ID | Project settings → General | `core.json`: Respond info (`firebaseProjectId`). `send-to-phone.json`: URL of Send FCM (`fcm.googleapis.com/v1/projects/...`) |
+| `REPLACE_SERVER_NAME` | Visible server name (no double quotes or backslashes) | You choose it | `core.json`: Respond info (`name`) and Respond session (`server.name`) |
 
-## 5. Para agentes de IA
+## 5. For AI agents
 
-Checklist verificable. Si no puedes cumplir un punto, detente y pregunta al usuario.
+Verifiable checklist. If you cannot meet a point, stop and ask the user.
 
-1. **Variables.** Necesitas `N8N_URL` (sin barra final, p. ej. `https://n8n.example.com`) y `N8N_API_KEY`. Si no existen en el entorno, pídelas. No inventes valores.
-2. **Acceso.** `curl -sS -o /dev/null -w "%{http_code}" "$N8N_URL/api/v1/workflows" -H "X-N8N-API-KEY: $N8N_API_KEY"` debe devolver `200`.
-3. **Datos de Firebase.** Pide al usuario la clave de API web, el ID del proyecto y la ruta local al JSON de la cuenta de servicio. Usa la ruta solo para crear la credencial; no la copies al repo.
-4. **Orden.** Credenciales (`n8n Connect JWT`, `n8n Connect FCM`) → tablas y filas seed → sub-workflows (`app-access`, `send-to-phone`) → `core`, `share` → `app-tools` → publicar → probar.
-5. **Por cada workflow.** Rellena la copia con `fill.py` en un directorio fuera del repo. Comprueba `grep REPLACE_ <copia>/<archivo>.json` sobre el archivo que vas a importar: debe estar vacío. Importa con `POST /api/v1/workflows` y guarda el `id` devuelto (función `import_wf` de la §3.d).
-6. **Comprobaciones finales.** `GET $N8N_URL/webhook/n8n-connect/info` devuelve `service`, `protocol`, `name` y `firebaseProjectId` con los valores correctos. `GET $N8N_URL/webhook/n8n-connect/apps` sin token devuelve 401 o 403.
-7. **Con MCP de n8n.** Antes de crear nada, llama a `get_instance_context`. Para IDs usa `search_data_tables` y `list_credentials`. Para tablas, `create_data_table` y `add_data_table_rows`. Para publicar, `publish_workflow`.
+1. **Variables.** You need `N8N_URL` (no trailing slash, e.g. `https://n8n.example.com`) and `N8N_API_KEY`. If they do not exist in the environment, ask for them. Do not invent values.
+2. **Access.** `curl -sS -o /dev/null -w "%{http_code}" "$N8N_URL/api/v1/workflows" -H "X-N8N-API-KEY: $N8N_API_KEY"` must return `200`.
+3. **Firebase data.** Ask the user for the web API key, the project ID and the local path to the service account JSON. Use the path only to create the credential; do not copy it into the repo.
+4. **Order.** Credentials (`n8n Connect JWT`, `n8n Connect FCM`) → tables and seed rows → sub-workflows (`app-access`, `send-to-phone`) → `core`, `share` → `app-tools` → publish → test.
+5. **For each workflow.** Fill the copy with `fill.py` in a directory outside the repo. Check `grep REPLACE_ <copy>/<file>.json` on the file you are going to import: it must be empty. Import with `POST /api/v1/workflows` and save the returned `id` (`import_wf` function in §3.d).
+6. **Final checks.** `GET $N8N_URL/webhook/n8n-connect/info` returns `service`, `protocol`, `name` and `firebaseProjectId` with the correct values. `GET $N8N_URL/webhook/n8n-connect/apps` without a token returns 401 or 403.
+7. **With the n8n MCP.** Before creating anything, call `get_instance_context`. For IDs use `search_data_tables` and `list_credentials`. For tables, `create_data_table` and `add_data_table_rows`. To publish, `publish_workflow`.
 
-**No hagas esto:**
-- No escribas secretos ni valores reales (API keys, secreto JWT, clave privada de Firebase, IDs reales, emails reales o URLs de producción) en `n8n/` ni en ningún otro archivo del repo.
-- No subas copias rellenadas de los JSON. Las copias van fuera del repo.
-- No sustituyas los placeholders en las plantillas del repo: se rellenan solo en copias.
-- No pegues el secreto JWT ni la clave privada en un chat o un log.
-- No importes dos veces el mismo workflow (se duplica). Si ocurre, borra el duplicado.
-- No publiques un workflow mientras quede algún `REPLACE_`.
-- No uses `/webhook-test/` para probar la app: la app usa `/webhook/`.
+**Do not do this:**
+- Do not write secrets or real values (API keys, JWT secret, Firebase private key, real IDs, real emails or production URLs) in `n8n/` or in any other file in the repo.
+- Do not push filled copies of the JSON files to the repo. The copies go outside the repo.
+- Do not replace the placeholders in the repo templates: fill them only in copies.
+- Do not paste the JWT secret or the private key into a chat or a log.
+- Do not import the same workflow twice (it gets duplicated). If it happens, delete the duplicate.
+- Do not publish a workflow while any `REPLACE_` remains.
+- Do not use `/webhook-test/` to test the app: the app uses `/webhook/`.
 
-## 6. Problemas frecuentes
+## 6. Troubleshooting
 
-Los códigos vienen de [docs/PROTOCOL.md](../docs/PROTOCOL.md) y del código de los nodos.
+The codes come from [docs/PROTOCOL.md](../docs/PROTOCOL.md) and from the node code.
 
-- **`not_allowed` (403): «La cuenta … no está autorizada en este servidor».** El email no tiene fila habilitada en `nc_users`. Añade la fila con el email en minúsculas y `enabled` = `true`.
-- **`account_disabled`, `email_not_verified` o `no_email` (403).** Los pone el servidor según la cuenta de Firebase. `email_not_verified` se resuelve verificando el email en Firebase.
-- **`wrong_firebase_project`.** El `firebaseProjectId` de `info` no coincide con el proyecto de la app. Corrige `REPLACE_FIREBASE_PROJECT_ID` y republica `core`.
-- **`app_forbidden` o «Esta app no está registrada en el servidor».** Falta la fila `tools` en `nc_apps` (o su `app_id` no coincide). Si la fila existe pero la app no aparece en el catálogo, revisa que `enabled` sea `true` y que tu email esté en `allowed_emails` (vacío = todos).
-- **El push no llega.** Comprueba, en este orden:
-  1. Que la credencial `n8n Connect FCM` existe y tiene el scope `https://www.googleapis.com/auth/firebase.messaging`.
-  2. Que `REPLACE_FIREBASE_PROJECT_ID` de la URL de Enviar FCM es el del proyecto.
-  3. Que tu fila de `nc_devices` tiene `fcm_token` y el email correcto. Sin token no hay envío. La respuesta `{"sent": 0, "reason": "no_devices"}` indica que el usuario no tiene dispositivos con token (PROTOCOL §9).
-  4. Que no has cerrado sesión en el móvil (el logout borra el `fcm_token`).
-- **Errores que no son JSON o que la app interpreta como sesión caducada.** La app trata como `session_invalid` un 401 sin `error.code` y un 403 cuyo cuerpo no es un objeto JSON (PROTOCOL §3.6). Un 401 con `{"error": {"code": "..."}}` conserva su código. Para tus propios rechazos usa 403 (o 400/404) con `{"error": {"code": "...", "message": "..."}}`, y nunca un 401 para un permiso de app.
-- **502, 504 o peticiones cortadas.** Si pones un proxy como Cloudflare delante de n8n, sustituye el cuerpo de las respuestas 502/504 y corta las peticiones a los 100 s (error 524): responde con 4xx o 424 y mantén cada petición por debajo de ese límite. Si una dependencia falla, responde 424 con `error.code` y `error.message` (PROTOCOL §8). La app espera hasta 150 s en submit (`AppConfig.submitTimeout`).
-- **`not_found` (404).** El webhook no existe o el workflow no está publicado. Revisa la ruta (`n8n-connect/...`, sin `/webhook/` duplicado) y publica el workflow.
-- **`invalid_token` (401) en `auth`.** Firebase rechazó el ID token: sesión caducada o de otro proyecto. Cierra sesión en la app e inicia de nuevo.
-- **`upstream_error` (424) en `auth`.** El servidor no pudo verificar el ID token con Google (Google respondió algo distinto de 400, o hubo un fallo de red). La app muestra el mensaje de *Validar identidad*. Vuelve a intentarlo en unos segundos.
-- **La app rechaza la URL.** Solo acepta `https://`. Un servidor local sin HTTPS no funciona con la app.
+- **`not_allowed` (403): "The account … is not authorized on this server."** The email has no enabled row in `nc_users`. Add the row with the email in lowercase and `enabled` = `true`.
+- **`account_disabled`, `email_not_verified` or `no_email` (403).** The server sets these based on the Firebase account. `email_not_verified` is resolved by verifying the email in Firebase.
+- **`wrong_firebase_project`.** The `firebaseProjectId` from `info` does not match the app's project. Fix `REPLACE_FIREBASE_PROJECT_ID` and republish `core`.
+- **`app_forbidden` or "This app is not registered on the server."** The `tools` row is missing from `nc_apps` (or its `app_id` does not match). If the row exists but the app does not appear in the catalog, check that `enabled` is `true` and that your email is in `allowed_emails` (empty = all).
+- **The push does not arrive.** Check, in this order:
+  1. That the `n8n Connect FCM` credential exists and has the scope `https://www.googleapis.com/auth/firebase.messaging`.
+  2. That `REPLACE_FIREBASE_PROJECT_ID` in the Send FCM URL is the project's ID.
+  3. That your `nc_devices` row has `fcm_token` and the correct email. Without a token nothing is sent. The response `{"sent": 0, "reason": "no_devices"}` means the user has no devices with a token (PROTOCOL §9).
+  4. That you have not signed out on the phone (logout deletes the `fcm_token`).
+- **Errors that are not JSON, or that the app reads as an expired session.** The app treats a 401 without `error.code` and a 403 whose body is not a JSON object as `session_invalid` (PROTOCOL §3.6). A 401 with `{"error": {"code": "..."}}` keeps its code. For your own rejections use 403 (or 400/404) with `{"error": {"code": "...", "message": "..."}}`, and never a 401 for an app permission.
+- **502, 504 or cut-off requests.** If you put a proxy such as Cloudflare in front of n8n, it replaces the body of 502/504 responses and cuts requests at 100 s (error 524): respond with 4xx or 424 and keep each request under that limit. If a dependency fails, respond 424 with `error.code` and `error.message` (PROTOCOL §8). The app waits up to 150 s on submit (`AppConfig.submitTimeout`).
+- **`not_found` (404).** The webhook does not exist or the workflow is not published. Check the path (`n8n-connect/...`, without a duplicated `/webhook/`) and publish the workflow.
+- **`invalid_token` (401) on `auth`.** Firebase rejected the ID token: expired session or from another project. Sign out in the app and sign in again.
+- **`upstream_error` (424) on `auth`.** The server could not verify the ID token with Google (Google responded with something other than 400, or there was a network failure). The app shows the message from *Validate identity*. Try again in a few seconds.
+- **The app rejects the URL.** It only accepts `https://`. A local server without HTTPS does not work with the app.

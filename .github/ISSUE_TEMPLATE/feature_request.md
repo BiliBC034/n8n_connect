@@ -1,15 +1,15 @@
 ---
-name: Propuesta de funcionalidad
-about: Sugerir una mejora o una nueva acción para la app
+name: Feature request
+about: Suggest an improvement or a new action for the app
 labels: enhancement
 ---
 
-## Problema o necesidad
+## Problem or need
 
-<!-- Qué quieres poder hacer y por qué. -->
+<!-- What you want to be able to do and why. -->
 
-## Solución propuesta
+## Proposed solution
 
-<!-- Cómo imaginas que funcionaría. Si implica cambiar el protocolo de flows, indícalo. -->
+<!-- How you imagine it would work. If it involves changing the protocol between the app and n8n, say so. -->
 
-## Alternativas consideradas
+## Alternatives considered

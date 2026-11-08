@@ -1,52 +1,53 @@
-# Directrices del Proyecto
+# Project guidelines
 
-## 1. Flujo de Control de Versiones Local (Git)
-- **Al iniciar una nueva petición**: Antes de modificar cualquier archivo, verificar si existen cambios pendientes no guardados en el repositorio local (`git status`). Si los hay, registrarlos con un commit previo (`git add . && git commit -m "chore: checkpoint previo"`).
-- **Al finalizar los cambios solicitados**: Inmediatamente después de aplicar las modificaciones solicitadas por el usuario, agregarlas al staging y hacer commit (`git add . && git commit -m "<tipo>: <descripción concisa>"`) para que el usuario pueda auditar el diff de forma inmediata en su repositorio local.
+## 1. Local version control workflow (Git)
+- **When starting a new request**: Before modifying any file, check whether there are unsaved pending changes in the local repository (`git status`). If there are, record them with a prior commit (`git add . && git commit -m "chore: pre-change checkpoint"`).
+- **When the requested changes are finished**: Immediately after applying the changes requested by the user, stage them and commit (`git add . && git commit -m "<type>: <short description>"`) so the user can audit the diff right away in their local repository.
+- Do not add AI co-author trailers (e.g. Co-Authored-By) or other AI attribution to commits or PR descriptions.
 
-## 2. Ahorro de Tokens y Respuestas Ultraconcisas
-- Al implementar o modificar código/documentación, la respuesta final en el chat debe ser **mínima y directa** (máximo 1-2 líneas confirmando los archivos modificados y el commit).
-- No incluir resúmenes extensos, no repetir fragmentos de código modificados ni dar explicaciones innecesarias a menos que el usuario lo solicite expresamente.
+## 2. Token saving and ultra-concise replies
+- When implementing or modifying code/documentation, the final reply in the chat must be **minimal and direct** (at most 1-2 lines confirming the modified files and the commit).
+- Do not include long summaries, do not repeat fragments of the modified code, and do not give unnecessary explanations unless the user explicitly asks for them.
 
-## 3. Qué es este repo
+## 3. What this repo is
 
-**n8n Connect** es una app Flutter (solo Android de momento) que muestra y ejecuta *apps* definidas en flujos de n8n. La APK es fija: las apps se crean en n8n. La app no tiene lógica de negocio: dibuja una spec JSON, guarda estado local y ejecuta las acciones del móvil que le pide n8n.
+**n8n Connect** is a Flutter app (Android only for now) that displays and runs *apps* defined in n8n workflows. The APK is fixed: apps are created in n8n. The app has no business logic: it draws a JSON spec, stores local state and runs the phone actions that n8n asks for.
 
-El protocolo completo está en [docs/PROTOCOL.md](docs/PROTOCOL.md). Si este archivo contradice al protocolo o al código, manda el código y corrige el documento.
+The full protocol is in [docs/PROTOCOL.md](docs/PROTOCOL.md). If this file contradicts the protocol or the code, the code prevails and the document is corrected.
 
-Mapa del repositorio:
+Repository map:
 
-| Ruta | Contenido |
+| Path | Contents |
 |---|---|
-| `lib/core/` | Constantes del protocolo (`app_config.dart`), router, plantillas `{{…}}`, utilidades JSON y log |
-| `lib/features/actions/` | Tipos de acción (`action_spec.dart`), ejecutor (`action_executor.dart`) y acciones de dispositivo |
-| `lib/features/alarms/` | Alarmas propias de la app (`schedule_alarm`): motor, pantalla de aviso y listado |
-| `lib/features/apps/` | Catálogo, runner de apps, render de componentes (`spec_view.dart`), iconos (`app_style.dart`) y caché sin conexión |
-| `lib/features/auth/` | Inicio de sesión con Firebase (email y contraseña, o Google) y verificación de email |
-| `lib/features/automation/` | Permiso de automatizaciones por app y ejecución de pushes con la app cerrada |
-| `lib/features/device_context/` | Datos del móvil (zona horaria, ubicación) y permisos del sistema |
-| `lib/features/onboarding/` | Tutorial de primer inicio (`onboarding_page.dart`) y `OnboardingService` (`onboarding_service.dart`), que guarda si ya se completó u omitió |
-| `lib/features/push/` | FCM: recepción de pushes `nc`, eventos y bandeja de n8n |
-| `lib/features/server/` | Cliente HTTP de n8n (`n8n_api.dart`), sesión JWT, URL del servidor y almacenamiento seguro |
-| `lib/features/settings/` | Configuración, idioma y tema |
-| `lib/features/share/` | Recibir texto o enlaces de "Compartir" y enviarlos a n8n |
-| `lib/features/startup/` | Arranque, pantalla de inicio y marca `BrandMark` (`brand.dart`) |
-| `lib/l10n/` | Textos de la app en ARB: `intl_es.arb` e `intl_en.arb` |
-| `lib/generated/` | Código generado por intl_utils. No editar a mano |
-| `lib/main.dart`, `lib/app.dart` | Entrada de la app |
-| `test/` | Tests unitarios y de widgets (`*_test.dart`) |
-| `docs/` | `PROTOCOL.md`: protocolo n8n Connect v1. `RELEASING.md`: firma y publicación de versiones |
-| `n8n/` | `workflows/` (plantillas importables) y `data-tables.json` (esquema de las tablas) |
-| `tools/` | `send_push.py`: envía un push de prueba sin pasar por n8n. `build_release.sh`: compila la release en `dist/`. `changelog_section.sh`: imprime las notas de una versión de `CHANGELOG.md`. `release_secrets.sh`: muestra o sube los secretos de GitHub Actions. `verify_apk_signature.sh`: comprueba con apksigner que una APK no lleva la clave debug |
-| `assets/branding/` | Logo c8c: `logo.svg` (completo), `logo-mark.svg` (solo el texto) y `logo-512.png` |
-| `android/` | Única plataforma configurada. `applicationId`: `me.bilibc.n8n_connect` |
-| `ios/` | Sin configurar |
+| `lib/core/` | Protocol constants (`app_config.dart`), router, `{{…}}` templates, JSON utilities and log |
+| `lib/features/actions/` | Action types (`action_spec.dart`), executor (`action_executor.dart`) and device actions |
+| `lib/features/alarms/` | The app's own alarms (`schedule_alarm`): engine, alert screen and list |
+| `lib/features/apps/` | Catalog, app runner, component rendering (`spec_view.dart`), icons (`app_style.dart`) and offline cache |
+| `lib/features/auth/` | Firebase sign-in (email and password, or Google) and email verification |
+| `lib/features/automation/` | Per-app automation permission and execution of pushes with the app closed |
+| `lib/features/device_context/` | Phone data (time zone, location) and system permissions |
+| `lib/features/onboarding/` | First-launch tutorial (`onboarding_page.dart`) and `OnboardingService` (`onboarding_service.dart`), which stores whether it was completed or skipped |
+| `lib/features/push/` | FCM: receiving `nc` pushes, events and the n8n inbox |
+| `lib/features/server/` | n8n HTTP client (`n8n_api.dart`), JWT session, server URL and secure storage |
+| `lib/features/settings/` | Settings, language and theme |
+| `lib/features/share/` | Receiving text or links from "Share" and sending them to n8n |
+| `lib/features/startup/` | Startup, splash screen and `BrandMark` widget (`brand.dart`) |
+| `lib/l10n/` | App texts in ARB: `intl_es.arb` and `intl_en.arb` |
+| `lib/generated/` | Code generated by intl_utils. Do not edit by hand |
+| `lib/main.dart`, `lib/app.dart` | App entry point |
+| `test/` | Unit and widget tests (`*_test.dart`) |
+| `docs/` | `PROTOCOL.md`: n8n Connect protocol v1. `RELEASING.md`: signing and publishing releases |
+| `n8n/` | `workflows/` (importable templates) and `data-tables.json` (table schema) |
+| `tools/` | `send_push.py`: sends a test push without going through n8n. `build_release.sh`: builds the release in `dist/`. `changelog_section.sh`: prints the notes of a version from `CHANGELOG.md`. `release_secrets.sh`: shows or uploads the GitHub Actions secrets. `verify_apk_signature.sh`: checks with apksigner that an APK is not signed with the debug key. `distribute.sh`: sends a tester build to Firebase App Distribution ([docs/RELEASING.md](docs/RELEASING.md#h-distributing-to-testers-firebase-app-distribution)) |
+| `assets/branding/` | c8c logo: `logo.svg` (full), `logo-mark.svg` (text only) and `logo-512.png` |
+| `android/` | The only configured platform. `applicationId`: `me.bilibc.n8n_connect` |
+| `ios/` | Not configured |
 
-## 4. Comandos
+## 4. Commands
 
-Ejecutar desde la raíz del repositorio. El CI (`.github/workflows/ci.yml`) usa Flutter 3.35.x, canal stable.
+Run from the repository root. CI (`.github/workflows/ci.yml`) uses Flutter 3.35.x, stable channel.
 
-Configuración local de Firebase (primera vez). Los archivos reales están en `.gitignore`: no los subas nunca.
+Local Firebase setup (first time). The real files are listed in `.gitignore`: never upload them.
 
 ```bash
 cp lib/firebase_options.example.dart lib/firebase_options.dart
@@ -54,203 +55,205 @@ cp lib/firebase_web_client.example.dart lib/firebase_web_client.dart
 cp android/app/google-services.example.json android/app/google-services.json
 ```
 
-- Alternativa: `flutterfire configure` genera `lib/firebase_options.dart`. El `google-services.json` se descarga de la consola de Firebase.
-- `lib/firebase_web_client.dart` define `firebaseWebClientId`: el client ID de tipo web (`client_type` 3 en `google-services.json`). Vacío oculta el botón de Google.
-- Google Sign-In en Android necesita registrar la huella SHA-1 de la clave de firma en la app Android de Firebase (`me.bilibc.n8n_connect`). Con la clave debug: `cd android && ./gradlew signingReport` y copia el SHA-1 de la variante debug. Hazlo antes de descargar `google-services.json`.
+- Alternative: `flutterfire configure` generates `lib/firebase_options.dart`. `google-services.json` is downloaded from the Firebase console.
+- `lib/firebase_web_client.dart` defines `firebaseWebClientId`: the client ID of type web (`client_type` 3 in `google-services.json`). Empty hides the Google button.
+- Google Sign-In on Android requires registering the SHA-1 fingerprint of the signing key in the Firebase Android app (`me.bilibc.n8n_connect`). With the debug key: `cd android && ./gradlew signingReport` and copy the SHA-1 of the debug variant. Do this before downloading `google-services.json`.
 
-Comandos habituales:
+Common commands:
 
 ```bash
 flutter pub get
 flutter analyze
 flutter test
 dart format lib test
-dart run intl_utils:generate    # tras editar lib/l10n/*.arb
+dart run intl_utils:generate    # after editing lib/l10n/*.arb
 flutter build apk --release
 ```
 
-- `dart run intl_utils:generate` lee la sección `flutter_intl` de `pubspec.yaml` (`arb_dir: lib/l10n`, `output_dir: lib/generated`). Edita siempre los dos ARB (`es` y `en`).
-- `flutter build apk --release` firma con la clave de `android/key.properties` (local, ignorado por git) si existe; si no, con la clave debug. Publicar versiones: [docs/RELEASING.md](docs/RELEASING.md) (etiqueta `vX.Y.Z` → workflow Release).
-- El CI copia los `.example`, luego ejecuta `flutter analyze` y `flutter test`. Antes de dar un cambio por bueno, pasa esos dos comandos y `dart format`.
-- `tools/send_push.py` necesita el paquete Python `firebase_admin` y la cuenta de servicio (`--service-account` o la variable `GOOGLE_APPLICATION_CREDENTIALS`).
+- `dart run intl_utils:generate` reads the `flutter_intl` section of `pubspec.yaml` (`arb_dir: lib/l10n`, `output_dir: lib/generated`). Always edit both ARB files (`es` and `en`).
+- `flutter build apk --release` signs with the key in `android/key.properties` (local, git-ignored) if it exists; otherwise, with the debug key. To publish releases: [docs/RELEASING.md](docs/RELEASING.md) (tag `vX.Y.Z` → Release workflow).
+- `tools/distribute.sh` builds a tester build (unless `--no-build`) and uploads it to Firebase App Distribution: [docs/RELEASING.md](docs/RELEASING.md#h-distributing-to-testers-firebase-app-distribution).
+- Manual tester build: in the Actions tab, run the **Release** workflow with *Run workflow*. It builds the selected branch and distributes it only to testers (no GitHub release): [docs/RELEASING.md](docs/RELEASING.md#h-distributing-to-testers-firebase-app-distribution).
+- The CI copies the `.example` files, then runs `flutter analyze` and `flutter test`. Before considering a change good, run those two commands and `dart format`.
+- `tools/send_push.py` requires the Python package `firebase_admin` and the service account (`--service-account` or the `GOOGLE_APPLICATION_CREDENTIALS` variable).
 
-## 5. Inicializar el servidor n8n
+## 5. Initializing the n8n server
 
-La guía completa (credenciales, placeholders, pruebas y problemas frecuentes) está en [n8n/README.md](n8n/README.md). Resumen:
+The full guide (credentials, placeholders, tests and common problems) is in [n8n/README.md](n8n/README.md). Summary:
 
-1. **Firebase.** Anota el ID del proyecto y la clave de API web (Configuración del proyecto → General). Descarga `google-services.json` para la app Android `me.bilibc.n8n_connect`. Crea una cuenta de servicio para los push.
-2. **Credenciales en n8n** (las crea una persona; son secretos):
-   - `n8n Connect JWT`: tipo "JWT Auth", con passphrase HS256 y un secreto aleatorio largo (por ejemplo `openssl rand -base64 48`).
-   - `n8n Connect FCM`: tipo "Google Service Account API", con la cuenta de servicio de Firebase y el scope `https://www.googleapis.com/auth/firebase.messaging`.
-3. **Tablas.** Crea `nc_users`, `nc_devices`, `nc_apps` y `nc_inbox` según [n8n/data-tables.json](n8n/data-tables.json) y la [§4 del protocolo](docs/PROTOCOL.md#4-tablas). Anota sus IDs.
-4. **Importar** en este orden: `app-access` y `send-to-phone` (sub-workflows, para conocer sus IDs), luego `core`, `share` y `app-tools`. Sustituye los placeholders de la tabla siguiente.
-5. **Publicar** cada workflow (botón Publish en n8n 2.x). Un webhook sin publicar responde 404.
-6. **Probar** con `GET https://TU-SERVIDOR/webhook/n8n-connect/info`: debe devolver `service: "n8n-connect"`, `protocol: 1`, el nombre del servidor y el ID del proyecto Firebase.
-7. **Dar acceso**: añade en `nc_users` una fila con el email de la cuenta en minúsculas, `enabled` a `true`, `role` y `name`. Sin fila, `auth` responde `not_allowed`.
-8. **Apps**: cada app necesita su fila en `nc_apps` (ver la sección 6).
+1. **Firebase.** Note the project ID and the web API key (Project settings → General). Download `google-services.json` for the Android app `me.bilibc.n8n_connect`. Create a service account for the pushes.
+2. **Credentials in n8n** (created by a person; they are secrets):
+   - `n8n Connect JWT`: type "JWT Auth", with an HS256 passphrase and a long random secret (for example `openssl rand -base64 48`).
+   - `n8n Connect FCM`: type "Google Service Account API", with the Firebase service account and the scope `https://www.googleapis.com/auth/firebase.messaging`.
+3. **Tables.** Create `nc_users`, `nc_devices`, `nc_apps` and `nc_inbox` according to [n8n/data-tables.json](n8n/data-tables.json) and [§4 of the protocol](docs/PROTOCOL.md#4-tables). Note their IDs.
+4. **Import** in this order: `app-access` and `send-to-phone` (sub-workflows, so you know their IDs), then `core`, `share` and `app-tools`. Replace the placeholders in the table below.
+5. **Publish** each workflow (Publish button in n8n 2.x). A webhook that is not published responds with 404.
+6. **Test** with `GET https://YOUR-SERVER/webhook/n8n-connect/info`: it must return `service: "n8n-connect"`, `protocol: 1`, the server name and the Firebase project ID.
+7. **Grant access**: add a row in `nc_users` with the account's email in lowercase, `enabled` set to `true`, and `role` and `name`. Without a row, `auth` responds `not_allowed`.
+8. **Apps**: each app needs its row in `nc_apps` (see section 6).
 
-| Placeholder | Sustituir por | Usado en |
+| Placeholder | Replace with | Used in |
 |---|---|---|
-| `REPLACE_CREDENTIAL_ID:n8n Connect JWT` | ID de la credencial JWT Auth | `core`, `share`, `app-tools` |
-| `REPLACE_CREDENTIAL_ID:n8n Connect FCM` | ID de la credencial Google Service Account | `send-to-phone` |
-| `REPLACE_DATA_TABLE_ID:<tabla>` | ID de cada tabla de datos | `nc_users`: `core`. `nc_devices`: `core`, `send-to-phone`. `nc_apps`: `core`, `app-access`. `nc_inbox`: `share`, `app-tools` |
-| `REPLACE_WORKFLOW_ID:app-access` | ID del workflow "n8n Connect · Acceso a app" | `app-tools` |
-| `REPLACE_WORKFLOW_ID:send-to-phone` | ID del workflow "n8n Connect · Enviar al móvil" | `app-tools` |
-| `REPLACE_FIREBASE_WEB_API_KEY` | Clave de API web de Firebase | `core` (verificación del ID token) |
-| `REPLACE_FIREBASE_PROJECT_ID` | ID del proyecto Firebase | `core` (info), `send-to-phone` (URL de FCM) |
-| `REPLACE_SERVER_NAME` | Nombre visible del servidor | `core` (info y sesión) |
+| `REPLACE_CREDENTIAL_ID:n8n Connect JWT` | ID of the JWT Auth credential | `core`, `share`, `app-tools` |
+| `REPLACE_CREDENTIAL_ID:n8n Connect FCM` | ID of the Google Service Account credential | `send-to-phone` |
+| `REPLACE_DATA_TABLE_ID:<table>` | ID of each data table | `nc_users`: `core`. `nc_devices`: `core`, `send-to-phone`. `nc_apps`: `core`, `app-access`. `nc_inbox`: `share`, `app-tools` |
+| `REPLACE_WORKFLOW_ID:app-access` | ID of the workflow "n8n Connect · App access" | `app-tools` |
+| `REPLACE_WORKFLOW_ID:send-to-phone` | ID of the workflow "n8n Connect · Send to phone" | `app-tools` |
+| `REPLACE_FIREBASE_WEB_API_KEY` | Firebase web API key | `core` (ID token verification) |
+| `REPLACE_FIREBASE_PROJECT_ID` | Firebase project ID | `core` (info), `send-to-phone` (FCM URL) |
+| `REPLACE_SERVER_NAME` | Display name of the server | `core` (info and session) |
 
-**Un agente de IA** puede, con la API pública o el MCP de n8n: importar las plantillas (`POST /api/v1/workflows`; el JSON solo trae `name`, `nodes`, `connections` y `settings`), crear tablas y filas, consultar IDs, publicar y probar los webhooks. En el MCP de n8n, los nombres son `create_data_table`, `add_data_table_rows`, `search_data_tables`, `list_credentials` y `publish_workflow`. Crear credenciales no aparece entre sus herramientas: lo hace una persona.
+**An AI agent** can, with the public API or the n8n MCP: import the templates (`POST /api/v1/workflows`; the JSON only carries `name`, `nodes`, `connections` and `settings`), create tables and rows, look up IDs, publish and test the webhooks. In the n8n MCP, the names are `create_data_table`, `add_data_table_rows`, `search_data_tables`, `list_credentials` and `publish_workflow`. Creating credentials does not appear among its tools: a person does that.
 
-**Necesita de una persona**: los secretos (secreto JWT, cuenta de servicio, clave de API web), el ID del proyecto Firebase, el email que se autoriza en `nc_users` y la confirmación antes de publicar. Nunca escribas esos valores en el repositorio ni en un chat.
+**Requires a person**: the secrets (JWT secret, service account, web API key), the Firebase project ID, the email that is authorized in `nc_users`, and confirmation before publishing. Never write those values in the repository or in a chat.
 
-## 6. Crear una app de n8n Connect
+## 6. Creating an n8n Connect app
 
-Resumen operativo. Detalle en el protocolo: [§5 Cómo crear una app](docs/PROTOCOL.md#5-cómo-crear-una-app), [§6 spec](docs/PROTOCOL.md#6-spec-de-ui-schema-1), [§7 acciones](docs/PROTOCOL.md#7-acciones), [§8 respuesta de submit](docs/PROTOCOL.md#8-respuesta-de-submit), [§10 refreshSeconds](docs/PROTOCOL.md#10-paneles-en-vivo-refreshseconds) y [§14 automatizaciones](docs/PROTOCOL.md#14-automatizaciones).
+Operational summary. Details in the protocol: [§5 How to create an app](docs/PROTOCOL.md#5-how-to-create-an-app), [§6 spec](docs/PROTOCOL.md#6-ui-spec-schema-1), [§7 actions](docs/PROTOCOL.md#7-actions), [§8 submit response](docs/PROTOCOL.md#8-submit-response), [§10 refreshSeconds](docs/PROTOCOL.md#10-live-dashboards-refreshseconds) and [§14 automations](docs/PROTOCOL.md#14-automations).
 
-### 6.1 Piezas
+### 6.1 Pieces
 
-1. **Fila en `nc_apps`**: `app_id`, `name`, `description`, `icon` (de la lista de la sección 6.5), `color` (`#RRGGBB`), `path` (`n8n-connect/apps/<id>`), `enabled`, `allowed_emails` (vacío = todos los usuarios habilitados) y `sort`. Ver [§4](docs/PROTOCOL.md#4-tablas).
-2. **Webhook GET `n8n-connect/apps/<id>`**: devuelve la spec JSON.
-3. **Webhooks de submit**, uno por acción de servidor, por ejemplo `POST n8n-connect/apps/<id>/saludar`.
-4. **Autenticación**: todos con *Authentication = "JWT Auth"* y la credencial `n8n Connect JWT`. Los claims verificados llegan en `$json.jwtPayload` (`email`, `did`, `role`…).
-5. **Control de acceso**: justo después de cada Webhook, llama al sub-workflow `n8n Connect · Acceso a app` con `app_id` y `email` (`jwtPayload.email`). Si devuelve `allowed: false`, responde 403 con `{error: {code: "app_forbidden", message}}` (el `error` del sub-workflow), como en la plantilla. Sin esta comprobación, `allowed_emails` solo filtra el catálogo y no bloquea los webhooks.
-6. **Punto de partida**: duplica `n8n/workflows/app-tools.json`, la app de demostración que usa casi todos los componentes y acciones. Cambia su path y su `app_id` (en la plantilla, los nodos de acceso tienen `app_id: "tools"` fijado).
+1. **Row in `nc_apps`**: `app_id`, `name`, `description`, `icon` (from the list in section 6.5), `color` (`#RRGGBB`), `path` (`n8n-connect/apps/<id>`), `enabled`, `allowed_emails` (empty = all enabled users) and `sort`. See [§4](docs/PROTOCOL.md#4-tables).
+2. **GET webhook `n8n-connect/apps/<id>`**: returns the JSON spec.
+3. **Submit webhooks**, one per server action, for example `POST n8n-connect/apps/<id>/greet`.
+4. **Authentication**: all of them with *Authentication = "JWT Auth"* and the `n8n Connect JWT` credential. The verified claims arrive in `$json.jwtPayload` (`email`, `did`, `role`…).
+5. **Access control**: right after each Webhook, call the sub-workflow `n8n Connect · App access` with `app_id` and `email` (`jwtPayload.email`). If it returns `allowed: false`, respond 403 with `{error: {code: "app_forbidden", message}}` (the `error` from the sub-workflow), as in the template. Without this check, `allowed_emails` only filters the catalog and does not block the webhooks.
+6. **Starting point**: duplicate `n8n/workflows/app-tools.json`, the demo app that uses almost all components and actions. Change its path and its `app_id` (in the template, the Access nodes have `app_id: "tools"` hard-coded).
 
-### 6.2 Spec de UI (schema 1)
+### 6.2 UI spec (schema 1)
 
-Campos de primer nivel: `schema` (1 por defecto; mayor que 1 da `unsupported_spec`), `title` (título por defecto), `start` (id de la pantalla inicial), `state` (valores iniciales), `refreshSeconds` (mínimo 10) y `screens` (lista de `{id, title, components}` o mapa `id → pantalla`). Sin pantallas válidas da `bad_spec`.
+Top-level fields: `schema` (1 by default; greater than 1 gives `unsupported_spec`), `title` (default title), `start` (ID of the start screen), `state` (initial values), `refreshSeconds` (minimum 10) and `screens` (list of `{id, title, components}` or map `id → screen`). Without valid screens it gives `bad_spec`.
 
 ```json
-{"schema": 1, "title": "Hola", "start": "inicio", "state": {"nombre": ""},
- "screens": [{"id": "inicio", "components": [
-   {"type": "input", "key": "nombre", "label": "Tu nombre", "required": true},
-   {"type": "button", "label": "Enviar", "action": {"type": "submit", "path": "n8n-connect/apps/hola/saludar"}}
+{"schema": 1, "title": "Hello", "start": "home", "state": {"name": ""},
+ "screens": [{"id": "home", "components": [
+   {"type": "input", "key": "name", "label": "Your name", "required": true},
+   {"type": "button", "label": "Send", "action": {"type": "submit", "path": "n8n-connect/apps/hello/greet"}}
  ]}]}
 ```
 
-- Los controles guardan su valor en `state[key]`. Las claves que empiezan por `_` son locales y no se envían.
-- **Plantillas `{{clave}}`**: admiten rutas (`{{user.name}}`, `{{items.0.title}}`). Una clave inexistente se muestra vacía en texto.
-- **Regla del valor crudo**: si una cadena es solo `"{{x}}"`, se usa el tipo original (número, booleano, objeto). Aplica a los parámetros de acciones y a `visible`.
-- **`visible`** es falso si vale `null`, `false`, `0`, `""`, `"false"`, `"0"`, `"no"`, una lista vacía o un objeto vacío. Sin `visible`, el componente se muestra.
-- **`required`** solo se valida en el móvil, sobre los componentes de primer nivel de la pantalla (no dentro de `card`). Es ayuda de interfaz: el servidor debe validar siempre.
+- Controls store their value in `state[key]`. Keys that start with `_` are local and are not sent.
+- **`{{key}}` templates**: they support paths (`{{user.name}}`, `{{items.0.title}}`). A nonexistent key is shown as empty in text.
+- **Raw value rule**: if a string is only `"{{x}}"`, the original type is used (number, boolean, object). It applies to action parameters and to `visible`.
+- **`visible`** is false if it is `null`, `false`, `0`, `""`, `"false"`, `"0"`, `"no"`, an empty list or an empty object. Without `visible`, the component is shown.
+- **`required`** is only validated on the phone, on the top-level components of the screen (not inside `card`). It is a UI aid: the server must always validate.
 
-### 6.3 Componentes
+### 6.3 Components
 
-Los 24 `type` que dibuja la app (`lib/features/apps/spec_view.dart`). Un `type` desconocido muestra "Componente no soportado" y no rompe la pantalla.
+The 24 `type` values the app draws (`lib/features/apps/spec_view.dart`). An unknown `type` shows "Unsupported component" and does not break the screen.
 
-- `text`: texto (`text`, `style` `title`/`subtitle`/`caption`, `align`). Admite plantillas.
-- `banner`: aviso con `tone` `info`, `success`, `warning` o `error`.
-- `card`: contenedor con `title`, `subtitle`, `icon` y `components`.
-- `image`: imagen `url` solo `https` y `height`. Si falla la carga, no muestra nada.
-- `divider`: línea separadora.
-- `spacer`: espacio vertical (`height`, 16 por defecto).
-- `input`: campo de texto (`key`, `label`, `hint`, `keyboard`, `obscure`, `required`).
-- `switch`: interruptor booleano (`key`, `label`, `description`).
-- `checkbox`: casilla booleana (`key`, `label`, `description`).
-- `select`: lista de `options` `{value, label, description, disabled}`; `style` `chips`, `radio` o desplegable.
-- `multiselect`: chips de selección múltiple; guarda la lista de `value`.
-- `date`: selector de fecha; guarda `yyyy-MM-dd`.
-- `time`: selector de hora; guarda `HH:mm`.
-- `slider`: barra deslizante (`min`, `max`, `step`, `unit`).
-- `stepper`: botones − y + (`min`, `max`, `step`).
-- `button`: botón (`label`, `icon`, `style` `tonal`/`outlined`/`text`, `action` y/o `actions`). Sin acciones queda deshabilitado.
-- `list`: elementos tocables `items` `{title, subtitle, trailing, icon, action / actions}`.
-- `details`: pares `{label, value}`.
-- `progress`: barra de progreso (`value`, `max`, `label`).
-- `metric`: indicador (`label`, `value`, `unit`, `icon`, `tone` `success`/`warning`/`error`, `caption`).
-- `grid`: filas de columnas iguales (`columns`, de 1 a 4) con `components` hijos.
-- `table`: tabla de solo lectura (`columns`, `rows`).
-- `automation` ([§14.7](docs/PROTOCOL.md#147-componentes-automation-y-permission)): interruptor del permiso de automatizaciones de la app.
-- `permission` ([§14.7](docs/PROTOCOL.md#147-componentes-automation-y-permission)): estado y botón de un permiso (`location`, `location_always`, `notifications`).
+- `text`: text (`text`, `style` `title`/`subtitle`/`caption`, `align`). Supports templates.
+- `banner`: notice with `tone` `info`, `success`, `warning` or `error`.
+- `card`: container with `title`, `subtitle`, `icon` and `components`.
+- `image`: image with `url` (`https` only) and `height`. If loading fails, nothing is shown.
+- `divider`: separator line.
+- `spacer`: vertical space (`height`, 16 by default).
+- `input`: text field (`key`, `label`, `hint`, `keyboard`, `obscure`, `required`).
+- `switch`: boolean toggle (`key`, `label`, `description`).
+- `checkbox`: boolean checkbox (`key`, `label`, `description`).
+- `select`: list of `options` `{value, label, description, disabled}`; `style` `chips`, `radio` or a dropdown.
+- `multiselect`: multiple-selection chips; stores the list of `value`.
+- `date`: date picker; stores `yyyy-MM-dd`.
+- `time`: time picker; stores `HH:mm`.
+- `slider`: slider bar (`min`, `max`, `step`, `unit`).
+- `stepper`: − and + buttons (`min`, `max`, `step`).
+- `button`: button (`label`, `icon`, `style` `tonal`/`outlined`/`text`, `action` and/or `actions`). Without actions it is disabled.
+- `list`: tappable items `items` `{title, subtitle, trailing, icon, action / actions}`.
+- `details`: `{label, value}` pairs.
+- `progress`: progress bar (`value`, `max`, `label`).
+- `metric`: indicator (`label`, `value`, `unit`, `icon`, `tone` `success`/`warning`/`error`, `caption`).
+- `grid`: rows of equal-width columns (`columns`, from 1 to 4) with child `components`.
+- `table`: read-only table (`columns`, `rows`).
+- `automation` ([§14.7](docs/PROTOCOL.md#147-automation-and-permission-components)): toggle for the app's automation permission.
+- `permission` ([§14.7](docs/PROTOCOL.md#147-automation-and-permission-components)): status and button of a permission (`location`, `location_always`, `notifications`).
 
-En los componentes nuevos, `min`, `max`, `step`, `value` y `columns` admiten plantillas.
+In the newer components, `min`, `max`, `step`, `value` and `columns` support templates.
 
-### 6.4 Acciones
+### 6.4 Actions
 
-Una acción es un objeto `{"type": ..., ...parámetros, "confirm": ...}`. Se ejecutan en orden y la lista se detiene en el primer error o si el usuario cancela una confirmación. `confirm` acepta un texto o `{title, message, confirmLabel}`. Las 28 acciones de `lib/features/actions/action_spec.dart`:
+An action is an object `{"type": ..., ...parameters, "confirm": ...}`. Actions run in order, and the list stops at the first error or if the user cancels a confirmation. `confirm` accepts a text or `{title, message, confirmLabel}`. The 28 actions in `lib/features/actions/action_spec.dart`:
 
-Necesitan una pantalla de app abierta:
-- `submit`: envía datos a `path` o `url` (`method`, `body`, `keys`, `loading`) y aplica la respuesta.
-- `navigate`: abre una pantalla (`screen`). Si ya está en la pila, vuelve a ella.
-- `back`: vuelve atrás; en la primera pantalla cierra la app.
-- `reload`: vuelve a pedir la spec y reinicia estado y pila.
-- `set_state`: mezcla valores en el estado (`values`).
-- `read_clipboard`: copia el portapapeles en `state[key]`.
+They need an open app screen:
+- `submit`: sends data to `path` or `url` (`method`, `body`, `keys`, `loading`) and applies the response.
+- `navigate`: opens a screen (`screen`). If it is already in the stack, it goes back to it.
+- `back`: goes back; on the first screen it closes the app.
+- `reload`: requests the spec again and resets state and stack.
+- `set_state`: merges values into the state (`values`).
+- `read_clipboard`: copies the clipboard into `state[key]`.
 
-Sin pantalla de app:
-- `open_app`: abre otra app del catálogo (`app`).
-- `toast`: aviso breve (`message`).
-- `dialog`: diálogo con Aceptar (`title`, `message`).
-- `set_alarm`: alarma en la app Reloj (`hour` y `minute` o `time`, `label`, `days`, `vibrate`, `skipUi`).
-- `set_timer`: temporizador de 1 s a 24 h (`seconds` o `minutes`, `label`, `skipUi`).
-- `calendar_event`: formulario de evento prellenado (`title`, `start`, `end`, `location`, `description`, `allDay`).
-- `open_url`: abre un enlace `https`, `http`, `mailto`, `tel` o `geo` (`url`).
-- `copy`: copia texto (`text`).
-- `share`: selector de compartir de Android (`text`, `subject`).
-- `dial`: abre el marcador con el número sin llamar (`number`).
-- `sms`: abre mensajes con destinatario y texto (`number`, `body`).
-- `email`: abre un correo nuevo (`to`, `subject`, `body`).
-- `maps`: abre un lugar (`query`, o `lat` y `lng`) o inicia la navegación (`navigate`).
-- `vibrate`: vibración háptica (`style`: `light`, `medium`, `heavy` o `vibrate`).
-- `show_alarms`: abre la lista de alarmas del reloj.
-- `open_settings`: abre un ajuste del sistema (`panel`: `wifi`, `bluetooth`, `location`, `display`, `sound`, `battery`, `date`, `notifications` o `app`).
-- `launch_app`: abre una app por nombre de paquete (`package`).
-- `request_permission`: pide un permiso (`location`, `location_always`, `notifications`). No es automática.
+No app screen needed:
+- `open_app`: opens another app from the catalog (`app`).
+- `toast`: brief notice (`message`).
+- `dialog`: dialog with OK (`title`, `message`).
+- `set_alarm`: alarm in the Clock app (`hour` and `minute` or `time`, `label`, `days`, `vibrate`, `skipUi`).
+- `set_timer`: timer from 1 s to 24 h (`seconds` or `minutes`, `label`, `skipUi`).
+- `calendar_event`: pre-filled event form (`title`, `start`, `end`, `location`, `description`, `allDay`).
+- `open_url`: opens an `https`, `http`, `mailto`, `tel` or `geo` link (`url`).
+- `copy`: copies text (`text`).
+- `share`: Android share sheet (`text`, `subject`).
+- `dial`: opens the dialer with the number, without calling (`number`).
+- `sms`: opens messages with recipient and text (`number`, `body`).
+- `email`: opens a new email (`to`, `subject`, `body`).
+- `maps`: opens a place (`query`, or `lat` and `lng`) or starts navigation (`navigate`).
+- `vibrate`: haptic vibration (`style`: `light`, `medium`, `heavy` or `vibrate`).
+- `show_alarms`: opens the Clock app's alarm list.
+- `open_settings`: opens a system setting (`panel`: `wifi`, `bluetooth`, `location`, `display`, `sound`, `battery`, `date`, `notifications` or `app`).
+- `launch_app`: opens an app by package name (`package`).
+- `request_permission`: requests a permission (`location`, `location_always`, `notifications`). It is not automatic.
 
-Automáticas (las únicas que pueden ejecutarse sin preguntar; `automaticActionTypes`):
-- `notify`: notificación local (`title`, `body`).
-- `schedule_alarm`: alarma propia de la app que suena aunque la app esté cerrada (`id`, `at` en ISO 8601, `label`, `body`). Con el mismo `id`, reemplaza la anterior.
-- `cancel_alarm`: cancela la alarma propia con ese `id`.
-- `report`: envía datos del móvil por POST a `path` (`include`, `data`) y ejecuta las `actions` de la respuesta.
+Automatic (the only ones that can run without asking; `automaticActionTypes`):
+- `notify`: local notification (`title`, `body`).
+- `schedule_alarm`: the app's own alarm, which rings even when the app is closed (`id`, `at` in ISO 8601, `label`, `body`). With the same `id`, it replaces the previous one.
+- `cancel_alarm`: cancels the app's own alarm with that `id`.
+- `report`: sends phone data by POST to `path` (`include`, `data`) and runs the response's `actions`.
 
-Las acciones de intent (`share`, `dial`, `sms`, `email`, `maps`, `show_alarms`, `open_settings`, `launch_app`) solo funcionan en Android. Los parámetros admiten plantillas.
+The intent actions (`share`, `dial`, `sms`, `email`, `maps`, `show_alarms`, `open_settings`, `launch_app`) only work on Android. Parameters support templates.
 
-### 6.5 Iconos
+### 6.5 Icons
 
-Solo estos nombres son válidos en `icon` (de la app o de un componente); los demás se ignoran. Tabla de `lib/features/apps/app_style.dart`:
+Only these names are valid in `icon` (of the app or of a component); the others are ignored. Table from `lib/features/apps/app_style.dart`:
 
 `add`, `alarm`, `alarm_add`, `apps`, `arrow_back`, `arrow_forward`, `bolt`, `calendar_today`, `camera`, `check`, `check_circle`, `close`, `cloud`, `delete`, `directions_car`, `edit`, `email`, `error`, `event`, `event_available`, `favorite`, `fitness_center`, `home`, `info`, `lightbulb`, `link`, `list`, `local_cafe`, `location_on`, `lock`, `music_note`, `notifications`, `person`, `phone`, `play_arrow`, `power`, `refresh`, `restaurant`, `schedule`, `search`, `send`, `settings`, `shopping_cart`, `star`, `stop`, `thermostat`, `timer`, `warning`, `wb_sunny`, `work`
 
-### 6.6 Respuesta de submit y errores
+### 6.6 Submit response and errors
 
-**Petición**: el método es el de la acción (`POST` por defecto). `POST`, `PUT`, `PATCH` y `DELETE` envían JSON; `GET` lo envía en la query string. El contenido es, por prioridad: `body`, luego `keys`, y si no hay ninguno, todo el estado salvo las claves con `_`. La app añade `Authorization: Bearer <JWT>`. Timeout de 150 s, con un overlay de `loading`.
+**Request**: the method is the action's (`POST` by default). `POST`, `PUT`, `PATCH` and `DELETE` send JSON; `GET` sends it in the query string. The content is, by priority: `body`, then `keys`, and if neither is set, the whole state except the keys that start with `_`. The app adds `Authorization: Bearer <JWT>`. Timeout of 150 s, with a `loading` overlay.
 
-**Respuesta**: un objeto JSON cuyos campos son opcionales. La app los aplica en este orden: `spec` (reemplaza la spec), `state` (mezcla valores), `screen` (navega), `message` (aviso) y `actions` (acciones, lista u objeto). Una 2xx vacía no hace nada; una 2xx que no es JSON da `bad_response`; una lista JSON se ignora.
+**Response**: a JSON object whose fields are all optional. The app applies them in this order: `spec` (replaces the spec), `state` (merges values), `screen` (navigates), `message` (notice) and `actions` (actions, list or object). An empty 2xx does nothing; a 2xx that is not JSON gives `bad_response`; a JSON list is ignored.
 
-**Errores**: `{"error": {"code": "…", "message": "…"}}`. Si el `code` no es uno de los que genera la app, se muestra el `message` tal cual. Códigos de la app: `network`, `timeout`, `session_invalid`, `not_found` (404: el webhook no existe o no está publicado), `bad_response`, `http_<status>`, `not_connected`, `signed_out`, `app_not_found`, `unsupported_spec` y `bad_spec` ([§3.6](docs/PROTOCOL.md#36-formato-de-error)).
+**Errors**: `{"error": {"code": "…", "message": "…"}}`. If the `code` is not one the app generates, the `message` is shown as is. App codes: `network`, `timeout`, `session_invalid`, `not_found` (404: the webhook does not exist or is not published), `bad_response`, `http_<status>`, `not_connected`, `signed_out`, `app_not_found`, `unsupported_spec` and `bad_spec` ([§3.6](docs/PROTOCOL.md#36-error-format)).
 
-### 6.7 Push, automatizaciones y permisos
+### 6.7 Push, automations and permissions
 
-- **Push n8n → móvil**: llama al sub-workflow `n8n Connect · Enviar al móvil` con Execute Sub-workflow y las entradas `email`, `title`, `body`, `actions` y `app` ([§9](docs/PROTOCOL.md#9-push-n8n--móvil)). Sin `actions` es un aviso; con `actions`, la app pide confirmación en primer plano y muestra un botón *Ejecutar* en segundo plano.
-- **Automatización**: un push se ejecuta sin preguntar solo si la app tiene permiso, hay `app`, todas las acciones son automáticas y ninguna tiene `confirm` ([§14.2](docs/PROTOCOL.md#142-qué-puede-ejecutarse-sin-preguntar)). El permiso lo concede el usuario en la app, con el componente `automation` ([§14.1](docs/PROTOCOL.md#141-permiso-por-app)).
-- **Alarmas**: para automatizaciones usa `schedule_alarm`; `set_alarm` abre la app Reloj y no sirve ([§14.6](docs/PROTOCOL.md#146-alarma-del-reloj-y-alarma-propia)).
-- **Datos del móvil**: `report` y `include: ["location"]` añaden ubicación y zona horaria ([§14.5](docs/PROTOCOL.md#145-datos-del-móvil)).
+- **n8n → phone push**: call the sub-workflow `n8n Connect · Send to phone` with Execute Sub-workflow and the inputs `email`, `title`, `body`, `actions` and `app` ([§9](docs/PROTOCOL.md#9-push-n8n--phone)). Without `actions` it is a notice; with `actions`, the app asks for confirmation in the foreground and shows a *Run* button in the background.
+- **Automation**: a push runs without asking only if the app has permission, there is an `app`, all the actions are automatic and none has `confirm` ([§14.2](docs/PROTOCOL.md#142-what-can-run-without-asking)). The user grants the permission in the app, with the `automation` component ([§14.1](docs/PROTOCOL.md#141-per-app-permission)).
+- **Alarms**: for automations, use `schedule_alarm`; `set_alarm` opens the Clock app and does not work for this ([§14.6](docs/PROTOCOL.md#146-clock-alarm-and-app-alarm)).
+- **Phone data**: `report` and `include: ["location"]` add location and time zone ([§14.5](docs/PROTOCOL.md#145-phone-data)).
 
-### 6.8 Trampas conocidas
+### 6.8 Known pitfalls
 
-- **Títulos de pantalla**: el título de una pantalla (y el `title` de la spec, usado en la barra) es texto literal; no resuelve `{{…}}`. Los textos de los componentes sí.
-- **`refreshSeconds`**: los valores menores de 10 se ignoran y la spec no se recarga sola ([§10](docs/PROTOCOL.md#10-paneles-en-vivo-refreshseconds)).
-- **`reload`** reinicia el estado y la pila a `start`. Además, el `screen` de la respuesta se aplica antes que las `actions`, así que el reload lo deshace. Para volver a una subpantalla con datos frescos, responde `"actions": [{"type": "reload"}, {"type": "navigate", "screen": "…"}]`.
-- **Proxy delante de n8n**: si pones un proxy como Cloudflare delante de n8n, sustituye el cuerpo de las respuestas 502/504 y corta las peticiones a los 100 s (error 524): responde con 4xx o 424 y mantén cada petición por debajo de ese límite. Si una dependencia falla, usa 424 con `error.code` y `error.message` ([§8](docs/PROTOCOL.md#8-respuesta-de-submit)).
-- **Sesión**: la app trata como `session_invalid` un 401 sin `error.code` y un 403 cuyo cuerpo no es un objeto JSON, y renueva la sesión ([§3.6](docs/PROTOCOL.md#36-formato-de-error)). Un 401 con `{error: {code}}` conserva su código. Los errores de negocio van en 403 con JSON `{error: {code, message}}`.
-- **Submit sin conexión**: `submit` nunca usa la copia offline; falla con `network` ([§11](docs/PROTOCOL.md#11-modo-sin-conexión)).
-- **`required`** es solo ayuda de interfaz: valida también en el servidor ([§2](docs/PROTOCOL.md#2-seguridad)).
+- **Screen titles**: a screen's title (and the spec's `title`, used in the bar) is literal text; it does not resolve `{{…}}`. Component texts do.
+- **`refreshSeconds`**: values below 10 are ignored and the spec is not reloaded on its own ([§10](docs/PROTOCOL.md#10-live-dashboards-refreshseconds)).
+- **`reload`** resets the state and the stack to `start`. Also, the response's `screen` is applied before its `actions`, so the reload undoes it. To return to a subscreen with fresh data, respond with `"actions": [{"type": "reload"}, {"type": "navigate", "screen": "…"}]`.
+- **Proxy in front of n8n**: if you put a proxy such as Cloudflare in front of n8n, it replaces the body of 502/504 responses and cuts requests at 100 s (error 524): respond with 4xx or 424 and keep each request below that limit. If a dependency fails, use 424 with `error.code` and `error.message` ([§8](docs/PROTOCOL.md#8-submit-response)).
+- **Session**: the app treats a 401 without `error.code`, and a 403 whose body is not a JSON object, as `session_invalid`, and renews the session ([§3.6](docs/PROTOCOL.md#36-error-format)). A 401 with `{error: {code}}` keeps its code. Business errors go in 403 with JSON `{error: {code, message}}`.
+- **Submit offline**: `submit` never uses the offline copy; it fails with `network` ([§11](docs/PROTOCOL.md#11-offline-mode)).
+- **`required`** is only a UI aid: also validate on the server ([§2](docs/PROTOCOL.md#2-security)).
 
-### 6.9 Checklist antes de dar una app por terminada
+### 6.9 Checklist before calling an app done
 
-1. Un `GET n8n-connect/apps/<id>` con un JWT válido devuelve la spec. Para obtener el JWT: `POST n8n-connect/auth` con un ID token de Firebase ([§3.2](docs/PROTOCOL.md#32-post-n8n-connectauth)).
-2. Sin acceso (email fuera de `allowed_emails` o app deshabilitada) responde 403 con JSON `{error: {code: "app_forbidden", message}}`. Un 401 sin `error.code`, o un 403 cuyo cuerpo no es un objeto JSON, hace que la app crea que la sesión caducó.
-3. Cada submit responde JSON válido con las claves esperadas.
-4. Los workflows de la app están publicados (sin publicar, 404).
-5. El `app_id` de los nodos "Acceso" coincide con el `id` de la app.
-6. Existe la fila en `nc_apps` con `enabled` a `true`, `path` igual a la ruta del GET, `icon` de la lista y `color` en `#RRGGBB`.
-7. La app muestra la entrada tras refrescar el catálogo (arrastrar hacia abajo).
+1. A `GET n8n-connect/apps/<id>` with a valid JWT returns the spec. To get the JWT: `POST n8n-connect/auth` with a Firebase ID token ([§3.2](docs/PROTOCOL.md#32-post-n8n-connectauth)).
+2. Without access (email outside `allowed_emails` or app disabled) it responds 403 with JSON `{error: {code: "app_forbidden", message}}`. A 401 without `error.code`, or a 403 whose body is not a JSON object, makes the app believe the session has expired.
+3. Each submit responds with valid JSON containing the expected keys.
+4. The app's workflows are published (unpublished gives 404).
+5. The `app_id` of the "Access" nodes matches the app's `id`.
+6. The row exists in `nc_apps` with `enabled` set to `true`, `path` equal to the GET path, `icon` from the list and `color` as `#RRGGBB`.
+7. The app shows the entry after refreshing the catalog (pull down).
 
-## 7. Cambiar la app Flutter
+## 7. Changing the Flutter app
 
-- **Idioma del código**: comentarios en inglés. Los textos visibles van en `lib/l10n/intl_es.arb` e `intl_en.arb`, ambos, y se regeneran con `dart run intl_utils:generate`. No edites `lib/generated/` a mano.
-- **Protocolo**: cualquier cambio de protocolo actualiza `docs/PROTOCOL.md` y, si corresponde, las constantes `AppConfig.protocolVersion` y `AppConfig.specSchemaVersion` de `lib/core/app_config.dart`. La app rechaza `protocol` o `schema` mayores que esas constantes.
-- **Tests**: cada parser, acción o regla nueva lleva test en `test/`. Pasa `flutter analyze` y `flutter test` antes de cerrar.
-- **Sin secretos**: no subas claves, IDs de proyecto Firebase, emails reales, IPs ni URLs de servidores propios. Los archivos de Firebase reales son locales y están en `.gitignore`; en el repo solo van los `*.example`.
-- **Git**: sigue la sección 1.
+- **Code language**: comments in English. Visible texts go in both `lib/l10n/intl_es.arb` and `intl_en.arb`, and are regenerated with `dart run intl_utils:generate`. Do not edit `lib/generated/` by hand.
+- **Protocol**: any protocol change updates `docs/PROTOCOL.md` and, if applicable, the constants `AppConfig.protocolVersion` and `AppConfig.specSchemaVersion` in `lib/core/app_config.dart`. The app rejects `protocol` or `schema` values greater than those constants.
+- **Tests**: every new parser, action or rule comes with a test in `test/`. Run `flutter analyze` and `flutter test` before finishing.
+- **No secrets**: do not upload keys, Firebase project IDs, real emails, IPs or URLs of your own servers. The real Firebase files are local and listed in `.gitignore`; only the `*.example` files go in the repo.
+- **Git**: follow section 1.

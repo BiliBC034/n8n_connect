@@ -50,15 +50,15 @@ android {
         create("release") {
             if (keystorePropertiesFile.exists()) {
                 keyAlias = keystoreProperties.getProperty("keyAlias")
-                    ?: error("android/key.properties: falta keyAlias")
+                    ?: error("android/key.properties: missing keyAlias")
                 keyPassword = keystoreProperties.getProperty("keyPassword")
-                    ?: error("android/key.properties: falta keyPassword")
+                    ?: error("android/key.properties: missing keyPassword")
                 storeFile = file(
                     keystoreProperties.getProperty("storeFile")
-                        ?: error("android/key.properties: falta storeFile"),
+                        ?: error("android/key.properties: missing storeFile"),
                 )
                 storePassword = keystoreProperties.getProperty("storePassword")
-                    ?: error("android/key.properties: falta storePassword")
+                    ?: error("android/key.properties: missing storePassword")
             }
         }
     }
@@ -69,7 +69,7 @@ android {
             signingConfig = if (keystorePropertiesFile.exists()) {
                 signingConfigs.getByName("release")
             } else {
-                logger.warn("key.properties no encontrado: la release se firma con la clave debug")
+                logger.warn("key.properties not found: the release is signed with the debug key")
                 signingConfigs.getByName("debug")
             }
         }

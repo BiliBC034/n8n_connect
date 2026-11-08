@@ -1,9 +1,9 @@
 {
-  "name": "n8n Connect · Compartir",
+  "name": "n8n Connect · Share",
   "nodes": [
     {
       "id": "1e597096-602b-48c6-b4d4-889f2ba951ec",
-      "name": "Compartido desde el móvil",
+      "name": "Shared from phone",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.2,
       "position": [
@@ -27,7 +27,7 @@
     },
     {
       "id": "3559c84d-520d-4db4-ba5c-92bae06b3d21",
-      "name": "Validar contenido",
+      "name": "Validate content",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
@@ -35,12 +35,12 @@
         0
       ],
       "parameters": {
-        "jsCode": "// Texto/enlace compartido desde otra app del móvil\nconst req = $(\"Compartido desde el móvil\").first().json;\nconst body = req.body ?? {};\nconst text = String(body.text ?? \"\").trim();\nif (!text) return [{ json: { ok: false, error: { code: \"empty\", message: \"No hay nada que guardar.\" } } }];\nreturn [{ json: {\n  ok: true,\n  email: String(req.jwtPayload?.email ?? \"\"),\n  text: text.slice(0, 10000),\n  subject: String(body.subject ?? \"\").trim().slice(0, 300),\n  note: String(body.note ?? \"\").trim().slice(0, 2000),\n  isLink: /^https?:\\/\\/\\S+$/.test(text),\n} }];"
+        "jsCode": "// Text/link shared from another app on the phone\nconst req = $(\"Shared from phone\").first().json;\nconst body = req.body ?? {};\nconst text = String(body.text ?? \"\").trim();\nif (!text) return [{ json: { ok: false, error: { code: \"empty\", message: \"There is nothing to save.\" } } }];\nreturn [{ json: {\n  ok: true,\n  email: String(req.jwtPayload?.email ?? \"\"),\n  text: text.slice(0, 10000),\n  subject: String(body.subject ?? \"\").trim().slice(0, 300),\n  note: String(body.note ?? \"\").trim().slice(0, 2000),\n  isLink: /^https?:\\/\\/\\S+$/.test(text),\n} }];"
       }
     },
     {
       "id": "3092eb58-b28d-4de0-bef0-6ee7b47609f0",
-      "name": "¿Hay contenido?",
+      "name": "Has content?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
@@ -73,7 +73,7 @@
     },
     {
       "id": "d22d3bea-8091-4c16-a3de-f051c893bd83",
-      "name": "Guardar en nc_inbox",
+      "name": "Save to nc_inbox",
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1.1,
       "position": [
@@ -157,7 +157,7 @@
     },
     {
       "id": "518fc471-0ae8-4e17-85a9-b32a3c8a171f",
-      "name": "Responder guardado",
+      "name": "Respond saved",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
       "position": [
@@ -166,13 +166,13 @@
       ],
       "parameters": {
         "respondWith": "json",
-        "responseBody": "={{ { message: $(\"Validar contenido\").first().json.isLink ? \"Enlace guardado en n8n\" : \"Texto guardado en n8n\" } }}",
+        "responseBody": "={{ { message: $(\"Validate content\").first().json.isLink ? \"Link saved in n8n\" : \"Text saved in n8n\" } }}",
         "options": {}
       }
     },
     {
       "id": "3dd0b41b-56be-4a95-9a57-52e309aad0f7",
-      "name": "Responder vacío",
+      "name": "Respond empty",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
       "position": [
@@ -197,7 +197,7 @@
         -176
       ],
       "parameters": {
-        "content": "## Compartir con n8n\nRecibe lo que compartes desde cualquier app del móvil (\"Compartir → n8n Connect\") y lo guarda en **nc_inbox**.\n\nAmplíalo a tu gusto después de \"Guardar\": resumir el enlace con IA, mandarlo a Discord, crear una tarea… La respuesta puede incluir `actions` que la app ejecutará.",
+        "content": "## Share with n8n\nReceives what you share from any app on the phone (\"Share → n8n Connect\") and saves it to **nc_inbox**.\n\nExtend it as you like after \"Save to nc_inbox\": summarize the link with AI, send it to Discord, create a task… The response can include `actions` that the app will run.",
         "height": 432,
         "width": 880,
         "color": 5
@@ -205,51 +205,51 @@
     }
   ],
   "connections": {
-    "Compartido desde el móvil": {
+    "Shared from phone": {
       "main": [
         [
           {
-            "node": "Validar contenido",
+            "node": "Validate content",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Validar contenido": {
+    "Validate content": {
       "main": [
         [
           {
-            "node": "¿Hay contenido?",
+            "node": "Has content?",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "¿Hay contenido?": {
+    "Has content?": {
       "main": [
         [
           {
-            "node": "Guardar en nc_inbox",
+            "node": "Save to nc_inbox",
             "type": "main",
             "index": 0
           }
         ],
         [
           {
-            "node": "Responder vacío",
+            "node": "Respond empty",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Guardar en nc_inbox": {
+    "Save to nc_inbox": {
       "main": [
         [
           {
-            "node": "Responder guardado",
+            "node": "Respond saved",
             "type": "main",
             "index": 0
           }

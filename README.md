@@ -3,95 +3,97 @@
 <h1 align="center">n8n Connect</h1>
 
 <p align="center">
-  App Android para usar en el móvil las apps que diseñas con flujos de <a href="https://n8n.io">n8n</a>.
+  Android app for using on your phone the apps you design with <a href="https://n8n.io">n8n</a> workflows.
 </p>
 
 <p align="center">
   <a href="https://github.com/BiliBC034/n8n_connect/actions/workflows/ci.yml"><img src="https://github.com/BiliBC034/n8n_connect/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/licencia-MIT-blue.svg" alt="Licencia MIT"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT License"></a>
   <img src="https://img.shields.io/badge/Flutter-3.35-02569B?logo=flutter&logoColor=white" alt="Flutter 3.35">
-  <img src="https://img.shields.io/badge/plataforma-Android-3DDC84?logo=android&logoColor=white" alt="Plataforma Android">
-  <a href="https://github.com/BiliBC034/n8n_connect/releases/latest"><img src="https://img.shields.io/github/v/release/BiliBC034/n8n_connect" alt="Última versión"></a>
+  <img src="https://img.shields.io/badge/platform-Android-3DDC84?logo=android&logoColor=white" alt="Android platform">
+  <a href="https://github.com/BiliBC034/n8n_connect/releases/latest"><img src="https://img.shields.io/github/v/release/BiliBC034/n8n_connect" alt="Latest version"></a>
 </p>
 
-> **Estado:** en desarrollo. Solo Android por ahora.
+> **Status:** in development. Android only for now.
 
-## Qué es y por qué
+## What it is and why
 
-n8n Connect conecta tu servidor de n8n con tu móvil. La APK es fija: no hace falta publicar una versión nueva de la app para crear otra. Las apps se diseñan en n8n como un JSON (la *spec*) con pantallas, formularios, botones y listas, y aparecen en el móvil. Cuando pulsas un botón, la app envía los datos a n8n y n8n responde con lo que hay que mostrar o hacer.
+n8n Connect connects your n8n server with your phone. The APK is fixed: there is no need to publish a new version of the app to create another one. Apps are designed in n8n as a JSON file (the *spec*) with screens, forms, buttons and lists, and they appear on the phone. When you tap a button, the app sends the data to n8n, and n8n responds with what to show or do.
 
-- **Apps sin recompilar**: pantallas y lógica viven en n8n.
-- **n8n actúa en el móvil**: puede poner alarmas, crear eventos de calendario, mostrar notificaciones, abrir enlaces o mapas, etc.
-- **Avisos con acciones**: n8n puede enviar un push que lanza acciones aunque la app esté cerrada.
-- **Automatizaciones**: si lo permites en cada app, n8n puede ejecutar acciones sin preguntar, por ejemplo programar una alarma según tu agenda y tu ubicación.
+- **Apps without rebuilding**: screens and logic live in n8n.
+- **n8n acts on the phone**: it can set alarms, create calendar events, show notifications, open links or maps, etc.
+- **Notices with actions**: n8n can send a push that runs actions even when the app is closed.
+- **Automations**: if you allow it in each app, n8n can run actions without asking, for example scheduling an alarm based on your calendar and location.
 
-## Funciones
+## Features
 
-- **Inicio de sesión** con Firebase: email y contraseña (con verificación de email) o Google.
-- **Sesión firmada con tu servidor**: la app cambia el token de Firebase por una sesión de 12 h emitida por n8n y la renueva sola.
-- **Conexión con n8n**: guardas la URL de tu servidor (solo HTTPS) y la app comprueba que es un servidor n8n Connect.
-- **Catálogo de apps**: las apps publicadas en n8n aparecen en la pantalla principal.
-- **Specs de UI declarativas**: textos, formularios, selectores, deslizadores, tarjetas, listas, indicadores, cuadrículas y tablas, con plantillas `{{clave}}`.
-- **Acciones del dispositivo**: alarmas, temporizadores, calendario, enlaces, mapas, llamadas, SMS, correo, compartir, portapapeles, vibración, notificaciones, ajustes del sistema y apertura de otras apps.
-- **Push con acciones**: n8n pide confirmación o, si lo activas en Configuración, ejecuta las acciones sin preguntar.
-- **Automatizaciones con permiso por app**: cada app puede ejecutar sus acciones automáticas sin preguntar. Se revoca en Configuración → Automatizaciones.
-- **Alarmas propias de n8n**: suenan con la app cerrada, sobreviven a reinicios y se pueden posponer 5 minutos.
-- **Datos del móvil para n8n**: ubicación y zona horaria, solo con permiso (por ejemplo, para calcular tiempos de viaje).
-- **Permisos desde las apps**: un componente para ver y pedir ubicación o notificaciones.
-- **Bandeja de n8n**: historial de los pushes recibidos, con su estado y un botón para volver a ejecutarlos.
-- **Compartir con n8n**: envía texto o enlaces desde cualquier app a n8n, con una nota opcional.
-- **Paneles en vivo**: las apps con `refreshSeconds` se recargan solas mientras están en pantalla.
-- **Modo sin conexión**: sin red, el catálogo y las apps muestran la última copia guardada.
-- **Tutorial** la primera vez que abres la app (se puede repetir desde Configuración).
-- Idioma español o inglés, y tema claro u oscuro.
+- **Sign-in** with Firebase: email and password (with email verification) or Google.
+- **Session signed by your server**: the app exchanges the Firebase token for a 12 h session issued by n8n, and renews it automatically.
+- **Connection to n8n**: you save your server URL (HTTPS only), and the app checks that it is an n8n Connect server.
+- **App catalog**: the apps published in n8n appear on the home screen.
+- **Declarative UI specs**: text, forms, selectors, sliders, cards, lists, indicators, grids and tables, with `{{key}}` templates.
+- **Phone actions**: alarms, timers, calendar, links, maps, calls, SMS, email, sharing, clipboard, vibration, notifications, system settings and opening other apps.
+- **Push with actions**: n8n asks for confirmation or, if you enable it in Settings, runs the actions without asking.
+- **Automations with per-app permission**: each app can run its automatic actions without asking. Revoke it in Settings → Automations.
+- **n8n's own alarms**: they ring with the app closed, survive reboots and can be snoozed for 5 minutes.
+- **Phone data for n8n**: location and time zone, only with permission (for example, to calculate travel times).
+- **Permissions from apps**: a component to view and request location or notification permissions.
+- **n8n inbox**: history of the pushes received, with their status and a button to run them again.
+- **Sharing with n8n**: send text or links from any app to n8n, with an optional note.
+- **Live dashboards**: apps with `refreshSeconds` reload automatically while they are on screen.
+- **Offline mode**: without a network, the catalog and apps show the last saved copy.
+- **Tutorial** the first time you open the app (you can replay it from Settings).
+- Spanish or English language, and light or dark theme.
 
-## Cómo funciona
+## How it works
 
 ```mermaid
 flowchart LR
-    M["Móvil<br/>App n8n Connect"]
+    M["Phone<br/>n8n Connect app"]
     FA["Firebase Auth"]
-    N["n8n<br/>webhooks de Core y de cada app"]
+    N["n8n<br/>webhooks of Core and each app"]
     F["FCM<br/>Firebase Cloud Messaging"]
 
     M -- "1. Login: ID token" --> FA
     FA -- "ID token" --> M
-    M -- "2. Sesión (ID token)" --> N
-    N -- "verifica el ID token" --> FA
-    N -- "JWT de 12 h" --> M
-    M -- "3. Catálogo, apps y envíos (JWT)" --> N
-    N -- "specs y respuestas" --> M
-    N -- "push de datos" --> F
-    F -- "mensaje FCM" --> M
+    M -- "2. Session (ID token)" --> N
+    N -- "verifies the ID token" --> FA
+    N -- "12 h JWT" --> M
+    M -- "3. Catalog, apps and submits (JWT)" --> N
+    N -- "specs and responses" --> M
+    N -- "data push" --> F
+    F -- "FCM message" --> M
 ```
 
-1. La app inicia sesión con Firebase Auth y obtiene un ID token.
-2. La app envía ese token a n8n. n8n lo verifica con Google, comprueba que el email esté verificado y habilitado, y devuelve un JWT de 12 h.
-3. Con ese JWT, la app pide el catálogo y la spec de cada app, y envía los formularios y botones a los webhooks de la app.
-4. Para avisar al móvil, n8n envía un mensaje de datos por FCM. La app muestra un diálogo o una notificación y ejecuta las acciones según el caso.
+1. The app signs in with Firebase Auth and gets an ID token.
+2. The app sends that token to n8n. n8n verifies it with Google, checks that the email is verified and enabled, and returns a 12 h JWT.
+3. With that JWT, the app requests the catalog and each app's spec, and sends forms and buttons to the app's webhooks.
+4. To notify the phone, n8n sends a data message through FCM. The app shows a dialog or a notification and runs the actions as appropriate.
 
-Detalles en [docs/PROTOCOL.md](docs/PROTOCOL.md) (§1 visión general y §2 seguridad).
+Details in [docs/PROTOCOL.md](docs/PROTOCOL.md) (§1 overview and §2 security).
 
-## Descargar
+## Download
 
-Descarga la última APK desde [las releases](https://github.com/BiliBC034/n8n_connect/releases/latest): `n8n-connect-vX.Y.Z.apk`, con su `.sha256` para comprobar la descarga. Requiere Android 7.0 o superior.
+Download the latest APK from [the latest release](https://github.com/BiliBC034/n8n_connect/releases/latest): `n8n-connect-vX.Y.Z.apk`, along with its `.sha256` to verify the download. Requires Android 7.0 or later.
 
-> **Nota:** la APK publicada está compilada con el proyecto Firebase del autor y solo se conecta a servidores n8n configurados con ese mismo proyecto (con otro, la app rechaza la conexión con `wrong_firebase_project`). Para tu propio servidor, compila la app con tu propio Firebase (ver [Puesta en marcha](#puesta-en-marcha)).
+Tester builds can also be distributed through Firebase App Distribution. See [docs/RELEASING.md](docs/RELEASING.md#h-distributing-to-testers-firebase-app-distribution).
 
-Para publicar tus propias versiones firmadas, sigue [docs/RELEASING.md](docs/RELEASING.md).
+> **Note:** the published APK is built with the author's Firebase project and only connects to n8n servers configured with that same project (with another one, the app rejects the connection with `wrong_firebase_project`). For your own server, build the app with your own Firebase (see [Getting started](#getting-started)).
 
-## Puesta en marcha
+To publish your own signed versions, follow [docs/RELEASING.md](docs/RELEASING.md).
 
-Requisitos: Flutter 3.35 (Dart 3.9), Android SDK y un móvil o emulador Android.
+## Getting started
 
-1. **Proyecto Firebase.** En la [consola de Firebase](https://console.firebase.google.com/):
-   - Crea un proyecto y activa **Authentication** con los proveedores *Correo electrónico/contraseña* y *Google*.
-   - Registra una app Android con el paquete `me.bilibc.n8n_connect`. Añade la huella SHA-1 de tu clave de firma (debug: `cd android && ./gradlew signingReport`), necesaria para Google Sign-In, y después descarga su `google-services.json`.
-   - Crea una cuenta de servicio para que n8n envíe los push (ver el paso siguiente).
+Requirements: Flutter 3.35 (Dart 3.9), Android SDK, and an Android phone or emulator.
 
-2. **Servidor n8n.** Sigue [n8n/README.md](n8n/README.md). Crea las tablas según `n8n/data-tables.json` (n8n no las importa: se crean en la UI o con el MCP), importa `n8n/workflows/` y sustituye todos los `REPLACE_…` (IDs de credenciales, tablas y sub-workflows, Web API key, ID del proyecto y nombre del servidor; lista completa en [n8n/README.md](n8n/README.md)). Configura las credenciales que piden los nodos.
+1. **Firebase project.** In the [Firebase console](https://console.firebase.google.com/):
+   - Create a project and enable **Authentication** with the *Email/Password* and *Google* providers.
+   - Register an Android app with the package `me.bilibc.n8n_connect`. Add the SHA-1 fingerprint of your signing key (debug: `cd android && ./gradlew signingReport`), which is required for Google Sign-In, and then download its `google-services.json`.
+   - Create a service account so n8n can send the pushes (see the next step).
 
-3. **Compila la app.** Copia los archivos de ejemplo a sus nombres reales (o usa `flutterfire configure` para generar `lib/firebase_options.dart`):
+2. **n8n server.** Follow [n8n/README.md](n8n/README.md). Create the tables from `n8n/data-tables.json` (n8n does not import them: create them in the UI or with the MCP), import `n8n/workflows/`, and replace all the `REPLACE_…` placeholders (credential, table and sub-workflow IDs, web API key, project ID and server name; full list in [n8n/README.md](n8n/README.md)). Configure the credentials the nodes ask for.
+
+3. **Build the app.** Copy the example files to their real names (or use `flutterfire configure` to generate `lib/firebase_options.dart`):
 
    ```bash
    cp lib/firebase_options.example.dart lib/firebase_options.dart
@@ -99,118 +101,125 @@ Requisitos: Flutter 3.35 (Dart 3.9), Android SDK y un móvil o emulador Android.
    cp android/app/google-services.example.json android/app/google-services.json
    ```
 
-   Sustituye los valores de ejemplo por los de tu proyecto, usando el `google-services.json` que descargaste. Esos archivos contienen datos de Firebase y están en `.gitignore`: no los subas al repositorio.
+   Replace the example values with those of your project, using the `google-services.json` you downloaded. These files contain Firebase data and are listed in `.gitignore`: do not commit them to the repository.
 
    ```bash
    flutter pub get
    flutter build apk --release
    ```
 
-   Para firmar la release con tu propia clave, crea `android/key.properties` como se explica en [docs/RELEASING.md](docs/RELEASING.md). Sin ese archivo, Gradle usa la clave debug y avisa.
+   To sign the release with your own key, create `android/key.properties` as explained in [docs/RELEASING.md](docs/RELEASING.md). Without that file, Gradle uses the debug key and shows a warning.
 
-4. **Primer inicio.**
-   1. En la tabla `nc_users` de n8n, añade tu email en minúsculas con `enabled = true` y el `role` que quieras. Sin esa fila, el servidor rechaza la cuenta (`not_allowed`).
-   2. Abre la app (verás un tutorial), inicia sesión, verifica tu email si te lo pide y escribe la URL de tu servidor (por ejemplo, `https://n8n.tu-dominio.com`; la app quita rutas como `/webhook` o `/home`).
+4. **First start.**
+   1. In the `nc_users` table in n8n, add your email in lowercase with `enabled = true` and the `role` you want. Without that row, the server rejects the account (`not_allowed`).
+   2. Open the app (you will see a tutorial), sign in, verify your email if asked, and enter your server URL (for example, `https://n8n.your-domain.com`; the app strips paths such as `/webhook` or `/home`).
 
-## Crear tus propias apps
+## Building your own apps
 
-Una app es un webhook GET que devuelve su spec en JSON, más los webhooks que reciben sus botones (*submit*). Para mostrarla en el catálogo, añade una fila en la tabla `nc_apps`.
+An app is a GET webhook that returns its spec as JSON, plus the webhooks that receive its buttons (*submit*). To show it in the catalog, add a row to the `nc_apps` table.
 
-- Empieza por la plantilla [n8n/workflows/app-tools.json](n8n/workflows/app-tools.json), la app de demostración con componentes y acciones del dispositivo.
-- Guía paso a paso en [docs/PROTOCOL.md §5](docs/PROTOCOL.md#5-cómo-crear-una-app). Spec de UI en [§6](docs/PROTOCOL.md#6-spec-de-ui-schema-1) y acciones en [§7](docs/PROTOCOL.md#7-acciones).
-- El repositorio está preparado para trabajar con agentes de IA. Sus directrices están en [AGENTS.md](AGENTS.md).
+- Start from the template [n8n/workflows/app-tools.json](n8n/workflows/app-tools.json), the demo app with components and phone actions.
+- Step-by-step guide in [docs/PROTOCOL.md §5](docs/PROTOCOL.md#5-how-to-create-an-app). UI spec in [§6](docs/PROTOCOL.md#6-ui-spec-schema-1) and actions in [§7](docs/PROTOCOL.md#7-actions).
+- The repository is set up to work with AI agents. Their guidelines are in [AGENTS.md](AGENTS.md).
 
-## Seguridad
+## Security
 
-- **Solo HTTPS**: la app no acepta servidores `http://` ni tráfico en claro.
-- **Sesión verificada**: n8n comprueba el token de Firebase con Google, exige email verificado y que la cuenta esté habilitada en `nc_users`.
-- **JWT de corta duración**: 12 h, renovado automáticamente. Los webhooks de las apps deben exigir ese JWT (las plantillas lo hacen).
-- **Acceso por app**: cada app debe comprobar el acceso con el sub-workflow «n8n Connect · Acceso a app» ([n8n/workflows/app-access.json](n8n/workflows/app-access.json)). Si una app no hace esa comprobación, `allowed_emails` de `nc_apps` solo filtra el catálogo.
-- **Almacenamiento**: la sesión va en almacenamiento cifrado respaldado por el Keystore de Android. La copia offline, la bandeja y los permisos de automatización van sin cifrar y nunca contienen el JWT ni el token de Firebase.
-- **Mismo origen**: una spec no puede enviar el JWT a otro dominio.
-- **Validación en el servidor**: los campos `required` de una spec solo sirven para la interfaz; n8n debe validar siempre lo que recibe.
+- **HTTPS only**: the app does not accept `http://` servers or cleartext traffic.
+- **Verified session**: n8n checks the Firebase token with Google, requires a verified email, and requires the account to be enabled in `nc_users`.
+- **Short-lived JWT**: 12 h, renewed automatically. App webhooks must require that JWT (the templates do this).
+- **Per-app access**: each app must check access with the sub-workflow "n8n Connect · App access" ([n8n/workflows/app-access.json](n8n/workflows/app-access.json)). If an app does not run that check, `allowed_emails` in `nc_apps` only filters the catalog.
+- **Storage**: the session is kept in encrypted storage backed by the Android Keystore. The offline copy, the inbox and the automation permissions are stored unencrypted, and they never contain the JWT or the Firebase token.
+- **Same origin**: a spec cannot send the JWT to another domain.
+- **Server-side validation**: the `required` fields in a spec are for the UI only; n8n must always validate what it receives.
 
-Modelo completo en [docs/PROTOCOL.md §2](docs/PROTOCOL.md#2-seguridad). Para reportar una vulnerabilidad, consulta [SECURITY.md](SECURITY.md).
+The full model is in [docs/PROTOCOL.md §2](docs/PROTOCOL.md#2-security). To report a vulnerability, see [SECURITY.md](SECURITY.md).
 
-## Desarrollo
+## Development
 
 ```bash
-flutter pub get                      # instala dependencias
-dart format lib test                 # formatea el código
-flutter analyze                      # análisis estático (sin avisos)
-flutter test                         # tests unitarios
-dart run intl_utils:generate         # regenera lib/generated/ desde lib/l10n/*.arb (traducciones)
-flutter build apk --release          # APK de release
+flutter pub get                      # install dependencies
+dart format lib test                 # format the code
+flutter analyze                      # static analysis (no warnings)
+flutter test                         # unit tests
+dart run intl_utils:generate         # regenerate lib/generated/ from lib/l10n/*.arb (translations)
+flutter build apk --release          # release APK
 ```
 
-Los textos están en `lib/l10n/` (español e inglés). Tras editarlos, ejecuta `dart run intl_utils:generate`. No edites `lib/generated/` a mano.
+The app's strings are in `lib/l10n/` (Spanish and English). After editing them, run `dart run intl_utils:generate`. Do not edit `lib/generated/` by hand.
 
-Estructura del repositorio:
+To send a build to testers through Firebase App Distribution, see [distributing to testers](docs/RELEASING.md#h-distributing-to-testers-firebase-app-distribution).
+
+Repository structure:
 
 ```
 lib/
-├── main.dart, app.dart      Arranque, MaterialApp y manejo de push
-├── core/                    Rutas, plantillas {{clave}} y utilidades del protocolo
-├── features/                Una carpeta por área: actions, alarms, apps, auth, automation,
+├── main.dart, app.dart      Startup, MaterialApp and push handling
+├── core/                    Routes, {{key}} templates and protocol utilities
+├── features/                One folder per area: actions, alarms, apps, auth, automation,
 │                            device_context, onboarding (tutorial), push, server, settings, share, startup
-├── l10n/                    Textos en español e inglés (.arb)
-└── generated/               Traducciones generadas
-android/                     Proyecto Android (permisos, notificaciones, MainActivity)
+├── l10n/                    Strings in Spanish and English (.arb)
+└── generated/               Generated translations
+android/                     Android project (permissions, notifications, MainActivity)
 assets/branding/             Logo
-docs/PROTOCOL.md             Protocolo entre la app y n8n
-n8n/                         Plantillas de workflows y tablas para n8n
-test/                        Tests unitarios
-tools/send_push.py           Envía un push de prueba sin pasar por n8n
+docs/PROTOCOL.md             Protocol between the app and n8n
+n8n/                         Workflow templates and tables for n8n
+test/                        Unit tests
+tools/build_release.sh       Builds the release APK, its .sha256 and the release notes
+tools/changelog_section.sh   Prints the CHANGELOG notes of a version
+tools/distribute.sh          Sends a build to Firebase App Distribution (testers)
+tools/release_secrets.sh     Prints or uploads the release secrets to GitHub
+tools/send_push.py           Sends a test push without going through n8n
+tools/verify_apk_signature.sh  Checks the APK signature (fails with the debug key)
 ```
 
-## Probar un push con tools/send_push.py
+## Testing a push with tools/send_push.py
 
-Envía un mensaje FCM de datos directamente a un móvil, sin pasar por n8n. Sirve para probar acciones, diálogos y notificaciones.
+Sends an FCM data message directly to a phone, without going through n8n. Useful for testing actions, dialogs and notifications.
 
-Requisitos:
+Requirements:
 
 ```bash
 pip install firebase-admin
 ```
 
-Credenciales: una cuenta de servicio del proyecto Firebase (archivo JSON). Pásala con `--service-account` o con la variable `GOOGLE_APPLICATION_CREDENTIALS`. No la subas al repositorio.
+Credentials: a service account for the Firebase project (JSON file). Pass it with `--service-account` or with the `GOOGLE_APPLICATION_CREDENTIALS` variable. Do not commit it to the repository.
 
-Token: el token FCM del dispositivo está en la fila de `nc_devices` (campo `fcm_token`).
+Token: the device's FCM token is in its `nc_devices` row (`fcm_token` field).
 
-| Argumento | Obligatorio | Por defecto | Descripción |
+| Argument | Required | Default | Description |
 |---|---|---|---|
-| `--service-account` | no (si hay `GOOGLE_APPLICATION_CREDENTIALS`) | — | Ruta al JSON de la cuenta de servicio |
-| `--token` | sí | — | Token FCM del dispositivo destino |
-| `--title` | no | `n8n Connect` | Título |
-| `--body` | no | vacío | Cuerpo |
-| `--actions` | no | `[]` | Lista JSON de acciones, p. ej. `'[{"type":"set_alarm","hour":7,"minute":30,"label":"Prueba"}]'` |
-| `--app` | no | vacío | Id de la app asociada |
+| `--service-account` | no (if `GOOGLE_APPLICATION_CREDENTIALS` is set) | — | Path to the service account JSON |
+| `--token` | yes | — | FCM token of the target device |
+| `--title` | no | `n8n Connect` | Title |
+| `--body` | no | empty | Body |
+| `--actions` | no | `[]` | JSON list of actions, e.g. `'[{"type":"set_alarm","hour":7,"minute":30,"label":"Test"}]'` |
+| `--app` | no | empty | ID of the associated app |
 
-Ejemplos:
+Examples:
 
 ```bash
-# Alarma a las 07:30 (en primer plano pide confirmación; en segundo plano muestra el botón "Ejecutar")
-python3 tools/send_push.py --service-account /ruta/cuenta-servicio.json --token TOKEN_FCM \
-  --title "Alarma" --body "07:30" \
-  --actions '[{"type":"set_alarm","hour":7,"minute":30,"label":"Prueba"}]' --app tools
+# Alarm at 07:30 (in the foreground it asks for confirmation; in the background it shows the "Run" button)
+python3 tools/send_push.py --service-account /path/to/service-account.json --token FCM_TOKEN \
+  --title "Alarm" --body "07:30" \
+  --actions '[{"type":"set_alarm","hour":7,"minute":30,"label":"Test"}]' --app tools
 
-# Aviso simple de una app
-python3 tools/send_push.py --service-account /ruta/cuenta-servicio.json --token TOKEN_FCM \
-  --title "Hola" --body "Prueba desde el PC" --app hola
+# Simple notice from an app
+python3 tools/send_push.py --service-account /path/to/service-account.json --token FCM_TOKEN \
+  --title "Hello" --body "Test from the PC" --app hello
 ```
 
-El script imprime el id del mensaje si FCM lo acepta. Si no, muestra el error de FCM.
+The script prints the message ID if FCM accepts the message. Otherwise, it shows the FCM error.
 
-## Documentación
+## Documentation
 
-- [docs/PROTOCOL.md](docs/PROTOCOL.md): protocolo completo entre la app y n8n (endpoints, seguridad, tablas, spec de UI, acciones, push, automatizaciones y ejemplos).
-- [n8n/README.md](n8n/README.md): puesta en marcha del servidor n8n.
-- [AGENTS.md](AGENTS.md): directrices para agentes de IA.
-- [CONTRIBUTING.md](CONTRIBUTING.md): cómo preparar el entorno y enviar cambios.
-- [docs/RELEASING.md](docs/RELEASING.md): cómo firmar la APK y publicar una versión en GitHub Releases.
-- [CHANGELOG.md](CHANGELOG.md): cambios de cada versión.
-- [SECURITY.md](SECURITY.md): política de seguridad y cómo reportar vulnerabilidades.
+- [docs/PROTOCOL.md](docs/PROTOCOL.md): full protocol between the app and n8n (endpoints, security, tables, UI spec, actions, push, automations and examples).
+- [n8n/README.md](n8n/README.md): setting up the n8n server.
+- [AGENTS.md](AGENTS.md): guidelines for AI agents.
+- [CONTRIBUTING.md](CONTRIBUTING.md): how to set up the environment and submit changes.
+- [docs/RELEASING.md](docs/RELEASING.md): how to sign the APK, publish a version on GitHub Releases and distribute tester builds through Firebase App Distribution.
+- [CHANGELOG.md](CHANGELOG.md): changes in each version.
+- [SECURITY.md](SECURITY.md): security policy and how to report vulnerabilities.
 
-## Licencia
+## License
 
-Distribuido bajo la licencia MIT. Ver [LICENSE](LICENSE).
+Distributed under the MIT License. See [LICENSE](LICENSE).

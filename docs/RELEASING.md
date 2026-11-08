@@ -1,52 +1,53 @@
-# Publicar una versión de n8n Connect
+# Releasing n8n Connect
 
-Esta guía explica, paso a paso, cómo firmar la APK, guardar la clave a salvo, publicar una versión en GitHub Releases y instalarla en el móvil. No hace falta saber de firma de apps Android: se explica todo lo necesario.
+This guide explains, step by step, how to sign the APK, keep the signing key safe, publish a version on GitHub Releases, send test builds to testers and install the app on the phone. You don't need to know anything about Android app signing: everything you need is explained here.
 
-Los comandos se ejecutan desde la raíz del repositorio, salvo que se indique otra cosa.
+Run the commands from the root of the repository, unless stated otherwise.
 
-## Índice
+## Contents
 
-- [a) Qué es la clave de firma](#a-qué-es-la-clave-de-firma)
-- [b) Crear la clave](#b-crear-la-clave)
-- [c) Copia de seguridad](#c-copia-de-seguridad)
-- [d) Registrar la huella en Firebase](#d-registrar-la-huella-en-firebase)
-- [e) Guardar los secretos en GitHub](#e-guardar-los-secretos-en-github)
-- [f) Publicar una versión (automático)](#f-publicar-una-versión-automático)
-- [g) Publicar a mano](#g-publicar-a-mano)
-- [h) Instalar en el móvil](#h-instalar-en-el-móvil)
-- [i) Problemas frecuentes](#i-problemas-frecuentes)
+- [a) What the signing key is](#a-what-the-signing-key-is)
+- [b) Creating the key](#b-creating-the-key)
+- [c) Backup](#c-backup)
+- [d) Registering the fingerprint in Firebase](#d-registering-the-fingerprint-in-firebase)
+- [e) Storing the secrets in GitHub](#e-storing-the-secrets-in-github)
+- [f) Publishing a release (automatic)](#f-publishing-a-release-automatic)
+- [g) Publishing manually](#g-publishing-manually)
+- [h) Distributing to testers (Firebase App Distribution)](#h-distributing-to-testers-firebase-app-distribution)
+- [i) Installing on the phone](#i-installing-on-the-phone)
+- [j) Troubleshooting](#j-troubleshooting)
 
-## a) Qué es la clave de firma
+## a) What the signing key is
 
-Toda APK de Android va firmada con una clave privada. La clave identifica a quien publica la app: Android comprueba que cada actualización esté firmada con la misma clave que la versión instalada.
+Every Android APK is signed with a private key. The key identifies who publishes the app: Android checks that each update is signed with the same key as the version already installed.
 
-Por eso importa:
+That is why it matters:
 
-- **Android solo instala una actualización** si va firmada con la misma clave que la versión que ya hay en el móvil. Si firmas con otra clave, Android rechaza la instalación.
-- **Si pierdes la clave, no puedes publicar actualizaciones** que se instalen encima de las anteriores. La única salida es cambiar el identificador de la app, lo que equivale a una app nueva: los usuarios tendrían que desinstalar la anterior y perderían sesión y datos locales.
-- **La clave nunca va al repositorio.** Vive en tu PC (y en una copia de seguridad) y se usa para firmar. En GitHub solo se guardan copias cifradas para el workflow de release.
+- **Android only installs an update** if it is signed with the same key as the version already on the phone. If you sign with a different key, Android rejects the installation.
+- **If you lose the key, you cannot publish updates** that install over the previous versions. The only way out is to change the app identifier, which is the same as a new app: users would have to uninstall the previous version and would lose their session and local data.
+- **The key never goes into the repository.** It lives on your PC (and in a backup) and is used to sign. GitHub only stores encrypted copies, for the release workflow.
 
-La clave de depuración (debug) que usan Android Studio y `flutter run` no sirve para publicar: se genera sola en cada equipo (`~/.android/debug.keystore`), cambia si cambias de PC o la borras, y su contraseña es pública (`android`). Por eso `flutter build apk --release` usa la clave debug solo si no existe `android/key.properties`.
+The debug key used by Android Studio and `flutter run` is not valid for publishing: it is generated on each computer (`~/.android/debug.keystore`), it changes if you change PCs or delete it, and its password is public (`android`). That is why `flutter build apk --release` uses the debug key only if `android/key.properties` does not exist.
 
-## b) Crear la clave
+## b) Creating the key
 
-> El autor del proyecto ya tiene la clave creada. Esta sección documenta cómo se hizo, para repetirlo si hace falta en otro equipo o para otro proyecto.
+> The project author already has the key created. This section documents how it was done, so you can repeat it if needed on another computer or for another project.
 
-1. Crea la carpeta en la que guardarás la clave (fuera del repositorio):
+1. Create the folder where you will keep the key (outside the repository):
 
    ```bash
    mkdir -p ~/.android
    ```
 
-2. Genera una contraseña fuerte con OpenSSL y guárdala en tu gestor de contraseñas en cuanto la veas:
+2. Generate a strong password with OpenSSL and save it in your password manager as soon as you see it:
 
    ```bash
    openssl rand -base64 32
    ```
 
-   No la pegues en chats, issues ni capturas de pantalla.
+   Do not paste it into chats, issues or screenshots.
 
-3. Genera la clave con `keytool` (viene con el JDK que usa Flutter/Android Studio). Sustituye `Tu nombre` por tu nombre:
+3. Generate the key with `keytool` (it comes with the JDK used by Flutter and Android Studio). Replace `Your name` with your name:
 
    ```bash
    keytool -genkeypair -v \
@@ -54,119 +55,134 @@ La clave de depuración (debug) que usan Android Studio y `flutter run` no sirve
      -keystore ~/.android/n8n-connect-release.jks \
      -alias n8n-connect \
      -keyalg RSA -keysize 4096 -validity 10000 \
-     -dname "CN=Tu nombre"
+     -dname "CN=Your name"
    ```
 
-   `keytool` pide la contraseña del almacén: usa la del paso anterior. Con PKCS12, la contraseña de la clave es la misma que la del almacén.
+   `keytool` asks for the keystore password: use the one from the previous step. With PKCS12, the key password is the same as the keystore password.
 
-4. Crea el archivo `android/key.properties` con este formato. Está en `.gitignore`, así que git nunca lo sube. Sustituye los valores por los tuyos, sin comillas:
+4. Create the file `android/key.properties` with this format. It is listed in `.gitignore`, so git never uploads it. Replace the values with yours, without quotes:
 
    ```properties
-   storeFile=/ruta/absoluta/a/.android/n8n-connect-release.jks
-   storePassword=CONTRASEÑA_DEL_ALMACÉN
+   storeFile=/absolute/path/to/.android/n8n-connect-release.jks
+   storePassword=YOUR_KEYSTORE_PASSWORD
    keyAlias=n8n-connect
-   keyPassword=CONTRASEÑA_DE_LA_CLAVE
+   keyPassword=YOUR_KEY_PASSWORD
    ```
 
-   - `storeFile` necesita la ruta **absoluta** (por ejemplo `/home/tu-usuario/.android/n8n-connect-release.jks`); Gradle no expande `~`.
-   - Con PKCS12, `keyPassword` es igual que `storePassword`.
+   - `storeFile` needs the **absolute** path (for example `/home/your-user/.android/n8n-connect-release.jks`); Gradle does not expand `~`.
+   - With PKCS12, `keyPassword` is the same as `storePassword`.
 
-5. Restringe los permisos del archivo para que solo tu usuario pueda leerlo:
+5. Restrict the file permissions so that only your user can read it:
 
    ```bash
    chmod 600 android/key.properties
    ```
 
-Comprueba que el archivo existe sin mostrar su contenido con `ls -l android/key.properties` (debe verse `-rw-------`). **No ejecutes `cat android/key.properties`** en una terminal compartida ni en una grabación.
+Check that the file exists without showing its content with `ls -l android/key.properties` (it should show `-rw-------`). **Do not run `cat android/key.properties`** in a shared terminal or in a recording.
 
-## c) Copia de seguridad
+## c) Backup
 
-Si pierdes el archivo `.jks` o su contraseña, pierdes la capacidad de actualizar la app (ver [a)](#a-qué-es-la-clave-de-firma)). Guarda copias en **dos sitios distintos**:
+If you lose the `.jks` file or its password, you lose the ability to update the app (see [a)](#a-what-the-signing-key-is)). Keep copies in **two different places**:
 
-- **La contraseña**: en un gestor de contraseñas (Bitwarden, KeePass, 1Password o similar).
-- **El archivo `~/.android/n8n-connect-release.jks`**: en un almacenamiento cifrado (disco o USB con cifrado, o un contenedor cifrado) y, si quieres, en un segundo lugar cifrado.
+- **The password**: in a password manager (Bitwarden, KeePass, 1Password or similar).
+- **The file `~/.android/n8n-connect-release.jks`**: in encrypted storage (an encrypted disk or USB drive, or an encrypted container) and, if you want, in a second encrypted location.
 
-No guardes el `.jks` en la nube sin cifrar, ni por correo, ni en el repositorio.
+Do not store the `.jks` file unencrypted in the cloud, send it by email, or put it in the repository.
 
-**Los secretos de GitHub no sirven como copia de seguridad**: GitHub no permite leer un secreto una vez guardado. Solo puedes sobrescribirlo.
+**GitHub secrets are not a backup**: GitHub does not let you read a secret once it is saved. You can only overwrite it.
 
-## d) Registrar la huella en Firebase
+## d) Registering the fingerprint in Firebase
 
-Firebase solo permite el inicio de sesión con Google desde apps cuya huella de firma esté registrada. Sin esto, el inicio de sesión con Google falla con el error 10 (`DEVELOPER_ERROR`).
+Firebase only allows Google sign-in from apps whose signing fingerprint is registered. Without this, Google sign-in fails with error 10 (`DEVELOPER_ERROR`).
 
-1. Obtén las huellas de la clave de release:
+1. Get the fingerprints of the release key:
 
    ```bash
    keytool -list -v -keystore ~/.android/n8n-connect-release.jks -alias n8n-connect
    ```
 
-   Introduce la contraseña del almacén. Copia las líneas **SHA1** y **SHA256** (son dos cadenas de pares hexadecimales separados por `:`).
+   Enter the keystore password. Copy the **SHA1** and **SHA256** lines (each one is a string of hexadecimal pairs separated by `:`).
 
-2. En la [consola de Firebase](https://console.firebase.google.com/), abre tu proyecto y ve a **Configuración del proyecto** (el engranaje) → pestaña **General** → sección **Tus apps**.
+2. In the [Firebase console](https://console.firebase.google.com/), open your project and go to **Project settings** (the gear icon) → **General** tab → **Your apps** section.
 
-3. Selecciona la app Android `me.bilibc.n8n_connect` → **Añadir huella digital**. Añade **las dos** huellas (SHA-1 y SHA-256), una a una.
+3. Select the Android app `me.bilibc.n8n_connect` → **Add fingerprint**. Add **both** fingerprints (SHA-1 and SHA-256), one at a time.
 
-4. En la misma app, descarga de nuevo **google-services.json** y sustituye `android/app/google-services.json` por el nuevo. El archivo contiene la lista de huellas, así que hay que volver a descargarlo después de añadirlas.
+4. In the same app, download **google-services.json** again and replace `android/app/google-services.json` with the new file. The file contains the list of fingerprints, so you must download it again after adding them.
 
-5. Si además compilas en local con la clave debug (`flutter run`), su huella SHA-1 también debe estar registrada. Puedes verla con `cd android && ./gradlew signingReport`.
+5. If you also build locally with the debug key (`flutter run`), its SHA-1 fingerprint must be registered too. You can see it with `cd android && ./gradlew signingReport`.
 
-Si cambias `google-services.json`, actualiza también el secreto `GOOGLE_SERVICES_JSON_BASE64` ([e)](#e-guardar-los-secretos-en-github)).
+If you change `google-services.json`, also update the `GOOGLE_SERVICES_JSON_BASE64` secret ([e)](#e-storing-the-secrets-in-github)).
 
-## e) Guardar los secretos en GitHub
+## e) Storing the secrets in GitHub
 
-El workflow de release (`.github/workflows/release.yml`) necesita siete secretos para compilar y firmar la APK en GitHub. Se añaden en el repositorio:
+The release workflow (`.github/workflows/release.yml`) needs seven secrets to build and sign the APK on GitHub. They are added to the repository:
 
-**GitHub → repositorio → Settings → Secrets and variables → Actions → New repository secret.** Crea uno por cada nombre de la tabla, con el nombre exacto.
+**GitHub → repository → Settings → Secrets and variables → Actions → New repository secret.** Create one for each name in the table, with the exact name.
 
-| Nombre del secreto | Qué contiene | Cómo obtenerlo |
+| Secret name | What it contains | How to get it |
 |---|---|---|
-| `ANDROID_KEYSTORE_BASE64` | El archivo `.jks` completo, codificado en base64 | `base64 -w0 ~/.android/n8n-connect-release.jks` |
-| `ANDROID_KEYSTORE_PASSWORD` | Contraseña del almacén | `storePassword` de `android/key.properties` (o tu gestor de contraseñas) |
-| `ANDROID_KEY_ALIAS` | Alias de la clave | `n8n-connect` |
-| `ANDROID_KEY_PASSWORD` | Contraseña de la clave | `keyPassword` de `android/key.properties` (igual que la del almacén con PKCS12) |
-| `GOOGLE_SERVICES_JSON_BASE64` | `android/app/google-services.json` en base64 | `base64 -w0 android/app/google-services.json` |
-| `FIREBASE_OPTIONS_DART_BASE64` | `lib/firebase_options.dart` en base64 | `base64 -w0 lib/firebase_options.dart` |
-| `FIREBASE_WEB_CLIENT_DART_BASE64` | `lib/firebase_web_client.dart` en base64 | `base64 -w0 lib/firebase_web_client.dart` |
+| `ANDROID_KEYSTORE_BASE64` | The full `.jks` file, encoded in base64 | `base64 -w0 ~/.android/n8n-connect-release.jks` |
+| `ANDROID_KEYSTORE_PASSWORD` | Keystore password | `storePassword` in `android/key.properties` (or your password manager) |
+| `ANDROID_KEY_ALIAS` | Key alias | `n8n-connect` |
+| `ANDROID_KEY_PASSWORD` | Key password | `keyPassword` in `android/key.properties` (the same as the keystore password with PKCS12) |
+| `GOOGLE_SERVICES_JSON_BASE64` | `android/app/google-services.json` in base64 | `base64 -w0 android/app/google-services.json` |
+| `FIREBASE_OPTIONS_DART_BASE64` | `lib/firebase_options.dart` in base64 | `base64 -w0 lib/firebase_options.dart` |
+| `FIREBASE_WEB_CLIENT_DART_BASE64` | `lib/firebase_web_client.dart` in base64 | `base64 -w0 lib/firebase_web_client.dart` |
+| `FIREBASE_APP_DISTRIBUTION_SA_BASE64` (optional) | Service account key for App Distribution, in base64. Only needed to send builds to testers from GitHub (see [h)](#h-distributing-to-testers-firebase-app-distribution)) | `base64 -w0` of the service account JSON key, or `tools/release_secrets.sh` with `FIREBASE_SA_JSON` (see below) |
 
-La forma más cómoda es ejecutar el script del repositorio, que lee los archivos locales y muestra el nombre y el valor de cada secreto:
+The easiest way is to run the repository script, which reads the local files and prints the name and value of each secret:
 
 ```bash
 tools/release_secrets.sh
 ```
 
-> **Advertencia: la salida de `tools/release_secrets.sh` contiene secretos** (la clave en base64 y las contraseñas). Cópialos directamente a GitHub, no los pegues en chats, issues ni capturas, y cierra la terminal cuando termines. Si la sesión se graba o se comparte, no la uses.
+To include the optional App Distribution secret, set `FIREBASE_SA_JSON` to the absolute path of the service account JSON key (see [h)](#h-distributing-to-testers-firebase-app-distribution)):
 
-Con la [GitHub CLI](https://cli.github.com/) instalada y autenticada (`gh auth login`), el script puede subir los secretos por ti:
+```bash
+FIREBASE_SA_JSON=/absolute/path/to/service-account.json tools/release_secrets.sh
+```
+
+If `FIREBASE_SA_JSON` is not set, or is not a file, the script prints a note and leaves out the optional secret.
+
+> **Warning: the output of `tools/release_secrets.sh` contains secrets** (the key in base64 and the passwords). Copy them directly to GitHub, do not paste them into chats, issues or screenshots, and close the terminal when you finish. If the session is recorded or shared, do not use it.
+
+With the [GitHub CLI](https://cli.github.com/) installed and signed in (`gh auth login`), the script can upload the secrets for you:
 
 ```bash
 tools/release_secrets.sh --gh BiliBC034/n8n_connect
 ```
 
-Indica siempre el repositorio (`OWNER/REPO`): si el clon tiene varios remotes, `gh` no sabe a cuál subirlos (o fija uno antes con `gh repo set-default`).
+To upload the optional secret too, add `FIREBASE_SA_JSON` in the same way:
 
-Comprueba después que aparecen los siete nombres en la lista de secretos del repositorio. Los valores no se pueden ver otra vez en GitHub, solo sobrescribir.
+```bash
+FIREBASE_SA_JSON=/absolute/path/to/service-account.json tools/release_secrets.sh --gh BiliBC034/n8n_connect
+```
 
-## f) Publicar una versión (automático)
+Always give the repository (`OWNER/REPO`): if your clone has several remotes, `gh` does not know which one to upload the secrets to (or set one first with `gh repo set-default`).
 
-Es el camino normal. Al subir una etiqueta `vX.Y.Z`, el workflow **Release** compila, firma y crea la release con la APK y su `.sha256`.
+Afterwards, check that the seven names appear in the repository's list of secrets (and `FIREBASE_APP_DISTRIBUTION_SA_BASE64`, if you uploaded it). The values cannot be viewed again on GitHub, only overwritten.
 
-1. **Sube la versión** en `pubspec.yaml`. El formato es `version: X.Y.Z+N`:
-   - `X.Y.Z` es la versión que ve la persona usuaria (la del nombre de la APK y la etiqueta).
-   - `N` es el número de compilación. **Debe ser mayor que el de la versión anterior**: Android rechaza instalar una versión con un número igual o menor.
+## f) Publishing a release (automatic)
+
+This is the normal path. When you push a `vX.Y.Z` tag, the **Release** workflow builds and signs the app and creates the release with the APK and its `.sha256` file.
+
+1. **Update the version** in `pubspec.yaml`. The format is `version: X.Y.Z+N`:
+   - `X.Y.Z` is the version the user sees (the one in the APK name and in the tag).
+   - `N` is the build number. **Increase it for each public release**: it must never go down, because Android refuses to install a build with a lower number, and a higher number keeps each release distinguishable. (A build with the same number, such as a tester build, installs over the previous one if it is signed with the same key: see [h)](#h-distributing-to-testers-firebase-app-distribution).)
 
    ```yaml
    version: 1.0.1+4
    ```
 
-2. **Añade la sección** en `CHANGELOG.md`, con el encabezado `## [X.Y.Z] - AAAA-MM-DD` y las notas en español. Las notas de la release son las líneas entre ese encabezado y el siguiente `## [`.
+2. **Add the section** to `CHANGELOG.md`, with the heading `## [X.Y.Z] - YYYY-MM-DD` and the notes in English. The release notes are the lines between that heading and the next `## [`.
 
-3. **Haz el commit** de los cambios:
+3. **Commit** the changes:
 
    ```bash
-   git add . && git commit -m "chore: publica la versión X.Y.Z"
+   git add . && git commit -m "chore: publish version X.Y.Z"
    ```
 
-4. **Etiqueta y sube** el commit y la etiqueta:
+4. **Tag and push** the commit and the tag:
 
    ```bash
    git tag vX.Y.Z
@@ -174,80 +190,197 @@ Es el camino normal. Al subir una etiqueta `vX.Y.Z`, el workflow **Release** com
    git push origin vX.Y.Z
    ```
 
-   La etiqueta debe ser exactamente `vX.Y.Z` y coincidir con `version` de `pubspec.yaml`. Si no coincide, el workflow falla (ver [i)](#i-problemas-frecuentes)).
+   The tag must be exactly `vX.Y.Z` and match `version` in `pubspec.yaml`. If it does not match, the workflow fails (see [j)](#j-troubleshooting)).
 
-5. **Sigue el proceso** en la pestaña **Actions** del repositorio, en el workflow **Release**. Si termina bien, la release aparece en **Releases** con la APK `n8n-connect-vX.Y.Z.apk` y su `n8n-connect-vX.Y.Z.apk.sha256`. Si falla, el log indica la causa (por ejemplo, secretos que faltan). El workflow comprueba los secretos y la etiqueta, ejecuta `flutter test` y solo compila si todo pasa.
+5. **Follow the process** in the **Actions** tab of the repository, in the **Release** workflow. If it finishes successfully, the release appears under **Releases** with the APK `n8n-connect-vX.Y.Z.apk` and its `n8n-connect-vX.Y.Z.apk.sha256`. If it fails, the log shows the cause (for example, missing secrets). The workflow checks the secrets and the tag, runs `flutter test`, and only builds if everything passes.
 
-## g) Publicar a mano
+## g) Publishing manually
 
-Úsalo si el workflow no funciona o si quieres compilar y revisar la APK antes de publicarla.
+Use this if the workflow does not work, or if you want to build and review the APK before publishing it.
 
-1. Asegúrate de tener `android/key.properties` y los archivos de Firebase locales (`lib/firebase_options.dart`, `lib/firebase_web_client.dart`, `android/app/google-services.json`).
+1. Make sure you have `android/key.properties` and the local Firebase files (`lib/firebase_options.dart`, `lib/firebase_web_client.dart`, `android/app/google-services.json`).
 
-2. Compila la release:
+2. Build the release:
 
    ```bash
    tools/build_release.sh
    ```
 
-   El script exige `android/key.properties` y deja en `dist/` (carpeta ignorada por git) la APK, su `.sha256` y `RELEASE_NOTES-vX.Y.Z.md`. Después comprueba que la APK no esté firmada con la clave debug: si el script termina con el error «firmada con la clave de DEPURACIÓN», **no publiques esa APK**, porque no podrá actualizar a las versiones firmadas con la clave de release. Revisa `android/key.properties` (ver [b)](#b-crear-la-clave)) y vuelve a compilar.
+   The script requires `android/key.properties` and leaves in `dist/` (a folder ignored by git) the APK, its `.sha256` file and `RELEASE_NOTES-vX.Y.Z.md`. It then checks that the APK is not signed with the debug key. If the script ends with the error "is signed with the DEBUG key", **do not publish that APK**, because it will not be able to update to versions signed with the release key. Check `android/key.properties` (see [b)](#b-creating-the-key)) and build again.
 
-3. En GitHub, ve a **Releases → Draft a new release**:
-   - **Choose a tag**: escribe `vX.Y.Z`. Si la etiqueta aún no existe, GitHub la crea sobre la rama principal, así que sube antes el commit. Ojo: si ya configuraste los secretos de [e)](#e-guardar-los-secretos-en-github), crear la etiqueta puede lanzar también el workflow **Release**, que publicaría su propia APK en esa release. Usa una vía u otra, no las dos.
+3. On GitHub, go to **Releases → Draft a new release**:
+   - **Choose a tag**: type `vX.Y.Z`. If the tag does not exist yet, GitHub creates it on the main branch, so push the commit first. Careful: if you already configured the secrets in [e)](#e-storing-the-secrets-in-github), creating the tag can also start the **Release** workflow, which would publish its own APK to that release. Use one route or the other, not both.
    - **Release title**: `n8n Connect vX.Y.Z`.
-   - **Description**: pega el contenido de `dist/RELEASE_NOTES-vX.Y.Z.md`.
-   - **Attach binaries**: arrastra `dist/n8n-connect-vX.Y.Z.apk` y `dist/n8n-connect-vX.Y.Z.apk.sha256`.
+   - **Description**: paste the contents of `dist/RELEASE_NOTES-vX.Y.Z.md`.
+   - **Attach binaries**: drag `dist/n8n-connect-vX.Y.Z.apk` and `dist/n8n-connect-vX.Y.Z.apk.sha256`.
 
-4. Pulsa **Publish release**.
+4. Click **Publish release**.
 
-## h) Instalar en el móvil
+## h) Distributing to testers (Firebase App Distribution)
 
-1. En un PC, abre la [última release](https://github.com/BiliBC034/n8n_connect/releases/latest) y descarga `n8n-connect-vX.Y.Z.apk` y su `.sha256` en la misma carpeta.
+Firebase App Distribution sends test builds of the app to a list of testers. Testers receive an email invitation, install the app and get new builds without using GitHub Releases. Use it to try a version with other people before you publish it. It is optional: the public release in section [f)](#f-publishing-a-release-automatic) does not need it.
 
-2. Comprueba que la APK no está dañada:
+There are three ways to send a build:
+
+- **From GitHub**: run the **Release** workflow by hand from the **Actions** tab.
+- **Automatically**: when you push a `vX.Y.Z` tag, the workflow also sends the APK to testers, if the App Distribution secret is set.
+- **From your PC**: run `tools/distribute.sh`.
+
+### One-time setup in Firebase
+
+Do this once for your Firebase project.
+
+1. **Turn on App Distribution.** Open the [App Distribution page](https://console.firebase.google.com/project/_/appdistribution) of the Firebase console and select your project (menu labels may vary: the path is **Release & Monitor → App Distribution**). Click **Get started** and select the Android app `me.bilibc.n8n_connect`.
+
+2. **Create a tester group.** Go to **App Distribution → Testers & Groups**, create a group with the alias `testers` (or another name you prefer), and add the email addresses of your testers.
+
+### One-time setup in Google Cloud (service account)
+
+A service account is a "robot" account that lets GitHub or your PC upload builds without using your personal login. You create it once, in Google Cloud, in the same project as Firebase.
+
+3. Open the [Google Cloud console](https://console.cloud.google.com/) and select the same project.
+4. Go to **IAM & Admin → Service accounts → Create service account**. Give it any name (for example, `app-distribution`).
+5. Grant it the role **Firebase App Distribution Admin**.
+6. Open the service account, go to **Keys → Add key → Create new key**, and choose **JSON**. A `.json` file is downloaded.
+7. **Keep that file secret.** Anyone who has it can upload builds to your Firebase project. Do not commit it to the repository, paste it into chats or send it by email.
+
+You do not need a backup of this file: if you lose it, create a new key for the service account (or a new service account) and update the GitHub secret with it.
+
+### GitHub secret and optional variable
+
+8. Store the key in GitHub as the secret `FIREBASE_APP_DISTRIBUTION_SA_BASE64`. The value is the JSON file encoded in base64 on a single line. The repository script can upload it, but read the warning below first:
+
+   ```bash
+   FIREBASE_SA_JSON=/absolute/path/to/service-account.json tools/release_secrets.sh --gh BiliBC034/n8n_connect
+   ```
+
+   > **Warning:** this command needs all the local signing and Firebase files (see [g)](#g-publishing-manually)) and uploads **all seven secrets** again, not only this one. To upload only the App Distribution secret, run:
+
+   ```bash
+   base64 -w0 /absolute/path/to/service-account.json | gh secret set FIREBASE_APP_DISTRIBUTION_SA_BASE64 --repo BiliBC034/n8n_connect
+   ```
+
+   Or add it by hand in **Settings → Secrets and variables → Actions** (paste the output of `base64 -w0 /absolute/path/to/service-account.json` as the value).
+
+9. (Optional) Create the variable `FIREBASE_TESTER_GROUPS` in **Settings → Secrets and variables → Actions → Variables → New repository variable**. Its value is the group aliases, separated by commas, for example `testers` or `testers,qa`. It is used on tag pushes, and in a manual run only if you clear the **groups** field (that field is pre-filled with `testers`, so the variable is ignored unless you clear it). If it is not set, the default is `testers`.
+
+### Sending a build from GitHub
+
+1. Open the **Actions** tab of the repository, choose the **Release** workflow and click **Run workflow**. The button only appears once `release.yml` (with `workflow_dispatch`) is on the default branch (`main`).
+2. Fill in the fields:
+   - **Branch** (the **Use workflow from** field): the branch whose code is built.
+   - **groups**: the group aliases, separated by commas. The default is `testers`.
+   - **release_notes**: optional text that testers see. If you leave it empty, the note is `Test build <short sha> from <ref> (vX.Y.Z)`.
+3. Click **Run workflow** and wait for it to finish. The log shows a line like `Distributing n8n-connect-vX.Y.Z.apk to the groups: testers`.
+
+A manual run does not create a GitHub release and does not check the tag or the CHANGELOG. It needs the `FIREBASE_APP_DISTRIBUTION_SA_BASE64` secret: without it, the run fails (see [j)](#j-troubleshooting)).
+
+On tag pushes (section [f)](#f-publishing-a-release-automatic)), the release notes are the CHANGELOG section of that version, and the groups come from the `FIREBASE_TESTER_GROUPS` variable (or `testers`). If the secret is not set, the workflow skips distribution and shows this notice: `FIREBASE_APP_DISTRIBUTION_SA_BASE64 is not set: skipping Firebase App Distribution.`
+
+### Sending a build from your PC
+
+`tools/distribute.sh` builds the APK with `tools/build_release.sh` (so the requirements in [g)](#g-publishing-manually) apply) and uploads it to App Distribution. Do this once:
+
+1. Install the Firebase CLI (it requires Node.js):
+
+   ```bash
+   npm install -g firebase-tools
+   ```
+
+2. Sign in with one of these options:
+   - `firebase login`, with an account that has access to the project; or
+   - `GOOGLE_APPLICATION_CREDENTIALS` set to the absolute path of the service account JSON file, for example `export GOOGLE_APPLICATION_CREDENTIALS=/absolute/path/to/service-account.json`.
+
+   If `GOOGLE_APPLICATION_CREDENTIALS` is not set, the script uses the account from `firebase login`.
+
+Examples:
+
+```bash
+tools/distribute.sh                                       # build and send to the default group
+tools/distribute.sh --groups testers,qa                   # send to two groups
+tools/distribute.sh --notes "Testing the new alarm screen"
+tools/distribute.sh --notes-file notes.txt --no-build     # send the APK already in dist/
+```
+
+Options:
+
+- `--groups`: comma-separated groups. Default: `$FIREBASE_TESTER_GROUPS` (an environment variable on your PC) or `testers`.
+- `--notes` or `--notes-file`: release notes for testers. Default: the CHANGELOG section of the version or, if there is none, `Test build <git short sha>`. Use one of them, not both.
+- `--no-build`: do not build; use the existing `dist/n8n-connect-vX.Y.Z.apk`. The file must exist, and the script checks its signature.
+
+In build mode (without `--no-build`), the script does not require a CHANGELOG section for the version: if there is none, the notes fall back to `Test build <git short sha>`. `tools/build_release.sh` still requires the section when you run it directly.
+
+The script prints lines like these:
+
+```
+Sending dist/n8n-connect-vX.Y.Z.apk to Firebase App Distribution (app <app id>, groups: testers)...
+Release vX.Y.Z sent to the groups: testers
+```
+
+### What testers do
+
+1. The tester receives an **invitation email** from Firebase App Tester and accepts it.
+2. The tester installs the build from the link in the email, or from the **Firebase App Tester** app. Android must allow **Install unknown apps** for that app or for the browser used to open the link (see [i)](#i-installing-on-the-phone), step 3).
+3. If the tester already has a version signed with **another key** (for example, a debug build from Android Studio or `flutter run`), they must **uninstall it first**. Android does not install over an app signed with a different key. See [i)](#i-installing-on-the-phone).
+4. Tester builds keep the version name and version code from `pubspec.yaml`. Android allows installing a build with the same version code over the installed one if both are signed with the same key.
+
+## i) Installing on the phone
+
+1. On a PC, open the [latest release](https://github.com/BiliBC034/n8n_connect/releases/latest) and download `n8n-connect-vX.Y.Z.apk` and its `.sha256` file into the same folder.
+
+2. Check that the APK is not corrupted:
 
    ```bash
    sha256sum -c n8n-connect-vX.Y.Z.apk.sha256
    ```
 
-   Debe responder `n8n-connect-vX.Y.Z.apk: OK`. En Windows, PowerShell tiene `Get-FileHash -Algorithm SHA256`; compara el valor con el del archivo `.sha256`. (Si prefieres descargarla directamente en el móvil, puedes saltarte este paso.)
+   It should reply `n8n-connect-vX.Y.Z.apk: OK`. On Windows, PowerShell has `Get-FileHash -Algorithm SHA256`; compare the value with the one in the `.sha256` file. (If you prefer to download the APK directly on the phone, you can skip this step.)
 
-3. Pasa la APK al móvil (cable USB, nube, etc.) y permite instalar apps desconocidas para el gestor de archivos o el navegador que uses. Los menús cambian según la versión de Android; busca **Instalar apps desconocidas** en los ajustes de esa app o en **Ajustes → Apps → Acceso especial**.
+3. Copy the APK to the phone (USB cable, cloud storage, etc.) and allow installing unknown apps for the file manager or browser you use. Menus change depending on the Android version; look for **Install unknown apps** in that app's settings, or under **Settings → Apps → Special access**.
 
-4. Abre el archivo APK y pulsa **Instalar**.
+4. Open the APK file and tap **Install**.
 
-> **Aviso:** si tenías instalada una versión firmada con **otra clave** (por ejemplo, una build de pruebas con la clave debug), Android no la actualiza. Desinstálala antes. Se pierden la sesión y los datos locales de la app (caché sin conexión, bandeja y permisos de automatización); el servidor y tus apps no cambian.
+> **Warning:** if you had installed a version signed with **another key** (for example, a test build signed with the debug key), Android will not update it. Uninstall it first. You lose the app's session and local data (offline cache, n8n inbox and automation permissions); your server and your apps do not change.
 
-## i) Problemas frecuentes
+## j) Troubleshooting
 
-- **"App no instalada", "el paquete parece no ser compatible" o conflicto de paquete.** La versión instalada está firmada con otra clave o tiene un número de compilación mayor. Desinstala la app actual (se pierden sesión y datos locales) e instala la nueva. Para evitarlo en el futuro, firma siempre con la misma clave.
+- **"App not installed", or a message about a package conflict or an invalid or incompatible package.** The installed version is signed with another key or has a higher build number. Uninstall the current app (you lose the session and local data) and install the new one. To avoid this in the future, always sign with the same key.
 
-- **Error 10 o `DEVELOPER_ERROR` al iniciar sesión con Google.** Falta la huella SHA-1 (y SHA-256) de la clave con la que se firmó la APK en la app Android de Firebase. Sigue [d)](#d-registrar-la-huella-en-firebase), descarga de nuevo `google-services.json` y actualiza el secreto `GOOGLE_SERVICES_JSON_BASE64`.
+- **Error 10 or `DEVELOPER_ERROR` when signing in with Google.** The SHA-1 (and SHA-256) fingerprint of the key used to sign the APK is missing from the Android app in Firebase. Follow [d)](#d-registering-the-fingerprint-in-firebase), download `google-services.json` again and update the `GOOGLE_SERVICES_JSON_BASE64` secret.
 
-- **El workflow falla por secretos.** El paso de comprobación indica qué secretos faltan. Añádelos en **Settings → Secrets and variables → Actions** con el nombre exacto de la tabla de [e)](#e-guardar-los-secretos-en-github). Luego vuelve a ejecutar el workflow desde la pestaña **Actions**.
+- **The workflow fails because of secrets.** The check step says which secrets are missing. Add them under **Settings → Secrets and variables → Actions**, with the exact name from the table in [e)](#e-storing-the-secrets-in-github). Then run the workflow again from the **Actions** tab.
 
-- **El workflow falla porque la etiqueta no coincide con `pubspec.yaml`.** La etiqueta `vX.Y.Z` debe ser igual que `X.Y.Z` de `version:`. Para corregirlo:
-  1. Borra la etiqueta equivocada, en local y en GitHub:
+- **The workflow fails because the tag does not match `pubspec.yaml`.** The `vX.Y.Z` tag must be the same as `X.Y.Z` in `version:`. To fix it:
+
+  1. Delete the wrong tag, locally and on GitHub:
 
      ```bash
      git tag -d vA.B.C
      git push origin :refs/tags/vA.B.C
      ```
 
-  2. Si lo que estaba mal era `pubspec.yaml`, corrígelo y haz commit y push. Si lo que estaba mal era la etiqueta, no cambies nada.
-  3. Crea la etiqueta correcta sobre el último commit y súbela:
+  2. If the problem was `pubspec.yaml`, fix it, then commit and push. If the problem was the tag, do not change anything.
+  3. Create the correct tag on the last commit and push it:
 
      ```bash
      git tag vX.Y.Z
      git push origin vX.Y.Z
      ```
 
-  Si ya se había publicado una release con la etiqueta equivocada, bórrala en GitHub (**Releases → Edit → Delete**).
+  If a release was already published with the wrong tag, delete it on GitHub (**Releases → Edit → Delete**).
 
-- **"Keystore was tampered with, or password was incorrect" en el workflow.** El secreto `ANDROID_KEYSTORE_PASSWORD` no es la contraseña del almacén, o `ANDROID_KEYSTORE_BASE64` está incompleto (cópialo entero, es una sola línea larga). Sobrescribe los dos secretos.
+- **"Keystore was tampered with, or password was incorrect" in the workflow.** The `ANDROID_KEYSTORE_PASSWORD` secret is not the keystore password, or `ANDROID_KEYSTORE_BASE64` is incomplete (copy it whole; it is one long line). Overwrite both secrets.
 
-- **"Cannot recover key" en el workflow.** El alias (`ANDROID_KEY_ALIAS`, debe ser `n8n-connect`) o `ANDROID_KEY_PASSWORD` son incorrectos. Con PKCS12, `ANDROID_KEY_PASSWORD` es la misma contraseña que la del almacén.
+- **"Cannot recover key" in the workflow.** The alias (`ANDROID_KEY_ALIAS`, which must be `n8n-connect`) or `ANDROID_KEY_PASSWORD` is wrong. With PKCS12, `ANDROID_KEY_PASSWORD` is the same password as the keystore's.
 
-- **"key.properties no encontrado" en el aviso de compilación.** No has creado `android/key.properties`, así que la APK se firma con la clave debug. Crea el archivo ([b)](#b-crear-la-clave)) antes de publicar.
+- **`key.properties not found` during the build.** You have not created `android/key.properties`, so the APK is signed with the debug key. The build prints `key.properties not found: the release is signed with the debug key`. Create the file ([b)](#b-creating-the-key)) before publishing.
 
-- **La compilación falla porque faltan archivos de Firebase.** Copia los `.example` a sus nombres reales o usa tu `google-services.json` y tus opciones de Firebase, como se explica en el [README](../README.md#puesta-en-marcha).
+- **The build fails because Firebase files are missing.** `tools/build_release.sh` prints `MISSING: <path>` for each missing file. Copy the `.example` files to their real names, or use your own `google-services.json` and Firebase options, as explained in the [README](../README.md#getting-started).
+
+- **`HTTP Error: 403, The caller does not have permission` when sending to App Distribution.** The Firebase CLI usually prints this, often right after `failed to fetch app information`. The service account does not have the **Firebase App Distribution Admin** role in the project. In the Google Cloud console, select the same project as Firebase, go to **IAM & Admin → IAM**, find the service account and grant it that role (see the service account steps in [h)](#h-distributing-to-testers-firebase-app-distribution)). Wait a minute, then run the upload again. Also check that the `FIREBASE_APP_DISTRIBUTION_SA_BASE64` secret (or the `GOOGLE_APPLICATION_CREDENTIALS` file on your PC) holds the key of that account.
+
+- **Group alias not found.** The group named in the **groups** field, in `--groups` or in `FIREBASE_TESTER_GROUPS` does not exist in App Distribution. Check the alias in **App Distribution → Testers & Groups** and type it exactly as it appears there. To send to several groups, separate them with commas.
+
+- **App not found, or App Distribution not set up.** The Firebase Android app ID is read from `android/app/google-services.json`. If you see `No Firebase Android app for me.bilibc.n8n_connect found in android/app/google-services.json` (workflow) or `No Android app for me.bilibc.n8n_connect in android/app/google-services.json. Download it again from the Firebase console.` (`tools/distribute.sh`), check that App Distribution is enabled ([h)](#h-distributing-to-testers-firebase-app-distribution), step 1) and that `google-services.json` is the current file from Firebase. If the Firebase app was recreated, download the file again, replace the local copy and update the `GOOGLE_SERVICES_JSON_BASE64` secret.
+
+- **The `FIREBASE_APP_DISTRIBUTION_SA_BASE64` secret is missing on a manual run.** The workflow stops with `Manual runs distribute the APK to testers, so the FIREBASE_APP_DISTRIBUTION_SA_BASE64 secret is required.` Add the secret as described in [h)](#h-distributing-to-testers-firebase-app-distribution) and run the workflow again from the **Actions** tab. (On a tag push, a missing secret does not fail the workflow; it only skips distribution.)

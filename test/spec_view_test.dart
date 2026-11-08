@@ -39,10 +39,10 @@ Future<List<MapEntry<String, Object?>>> _pump(
 void main() {
   testWidgets('checkbox tap stores true', (tester) async {
     final changes = await _pump(tester, [
-      {'type': 'checkbox', 'key': 'ok', 'label': 'Acepto'},
+      {'type': 'checkbox', 'key': 'ok', 'label': 'I agree'},
     ]);
 
-    await tester.tap(find.text('Acepto'));
+    await tester.tap(find.text('I agree'));
     await tester.pump();
 
     expect(changes.single.key, 'ok');
@@ -82,7 +82,13 @@ void main() {
     final changes = await _pump(
       tester,
       [
-        {'type': 'stepper', 'key': 'n', 'label': 'Vasos', 'min': 0, 'max': 10},
+        {
+          'type': 'stepper',
+          'key': 'n',
+          'label': 'Glasses',
+          'min': 0,
+          'max': 10,
+        },
       ],
       state: {'n': 5},
     );
@@ -98,7 +104,13 @@ void main() {
     await _pump(
       tester,
       [
-        {'type': 'stepper', 'key': 'n', 'label': 'Vasos', 'min': 0, 'max': 10},
+        {
+          'type': 'stepper',
+          'key': 'n',
+          'label': 'Glasses',
+          'min': 0,
+          'max': 10,
+        },
       ],
       state: {'n': 0},
     );
@@ -116,7 +128,7 @@ void main() {
         {
           'type': 'slider',
           'key': 'vol',
-          'label': 'Volumen',
+          'label': 'Volume',
           'min': 0,
           'max': 100,
           'unit': '%',
@@ -126,7 +138,7 @@ void main() {
     );
 
     expect(find.byType(Slider), findsOneWidget);
-    expect(find.text('Volumen'), findsOneWidget);
+    expect(find.text('Volume'), findsOneWidget);
     expect(find.text('30%'), findsOneWidget);
   });
 
@@ -143,14 +155,14 @@ void main() {
     await _pump(tester, [
       {
         'type': 'metric',
-        'label': 'Temperatura',
+        'label': 'Temperature',
         'value': '21',
         'unit': '°C',
         'tone': 'success',
       },
     ]);
 
-    expect(find.text('Temperatura'), findsOneWidget);
+    expect(find.text('Temperature'), findsOneWidget);
     expect(find.text('21'), findsOneWidget);
     expect(find.text('°C'), findsOneWidget);
   });
@@ -161,10 +173,10 @@ void main() {
       [
         {
           'type': 'table',
-          'columns': ['Nombre', 'Valor'],
+          'columns': ['Name', 'Value'],
           'rows': [
             ['{{name}}', '1'],
-            ['solo'],
+            ['only'],
           ],
         },
       ],
@@ -172,9 +184,9 @@ void main() {
     );
 
     expect(find.byType(DataTable), findsOneWidget);
-    expect(find.text('Nombre'), findsOneWidget);
+    expect(find.text('Name'), findsOneWidget);
     expect(find.text('Ana'), findsOneWidget);
-    expect(find.text('solo'), findsOneWidget);
+    expect(find.text('only'), findsOneWidget);
   });
 
   testWidgets('grid renders all of its children', (tester) async {
@@ -183,29 +195,29 @@ void main() {
         'type': 'grid',
         'columns': 2,
         'components': [
-          {'type': 'text', 'text': 'Uno'},
-          {'type': 'text', 'text': 'Dos'},
-          {'type': 'text', 'text': 'Tres'},
+          {'type': 'text', 'text': 'One'},
+          {'type': 'text', 'text': 'Two'},
+          {'type': 'text', 'text': 'Three'},
         ],
       },
     ]);
 
-    expect(find.text('Uno'), findsOneWidget);
-    expect(find.text('Dos'), findsOneWidget);
-    expect(find.text('Tres'), findsOneWidget);
+    expect(find.text('One'), findsOneWidget);
+    expect(find.text('Two'), findsOneWidget);
+    expect(find.text('Three'), findsOneWidget);
   });
 
   testWidgets('component with visible false is not rendered', (tester) async {
     await _pump(
       tester,
       [
-        {'type': 'text', 'text': 'Siempre'},
-        {'type': 'text', 'text': 'Oculto', 'visible': '{{flag}}'},
+        {'type': 'text', 'text': 'Always'},
+        {'type': 'text', 'text': 'Hidden', 'visible': '{{flag}}'},
       ],
       state: {'flag': false},
     );
 
-    expect(find.text('Siempre'), findsOneWidget);
-    expect(find.text('Oculto'), findsNothing);
+    expect(find.text('Always'), findsOneWidget);
+    expect(find.text('Hidden'), findsNothing);
   });
 }

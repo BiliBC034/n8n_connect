@@ -3,7 +3,7 @@ import 'dart:convert';
 import '../../core/json.dart';
 import '../actions/action_spec.dart';
 
-/// FCM data message sent by the "n8n Connect · Enviar al móvil" workflow.
+/// FCM data message sent by the "n8n Connect · Send to phone" workflow.
 ///
 /// FCM data values are strings, so `actions` arrives JSON-encoded:
 /// `{"nc": "1", "id": "…", "title": "…", "body": "…",

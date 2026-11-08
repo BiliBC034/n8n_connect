@@ -1,47 +1,47 @@
-# Política de seguridad
+# Security policy
 
-## Versiones soportadas
+## Supported versions
 
-Solo se mantiene la rama `main`. Las correcciones de seguridad se publican ahí; no hay ramas de mantenimiento para versiones anteriores.
+Only the `main` branch is maintained. Security fixes are published there; there are no maintenance branches for earlier versions.
 
-## Cómo informar de una vulnerabilidad
+## How to report a vulnerability
 
-**No abras un issue público** para reportar una vulnerabilidad.
+**Do not open a public issue** to report a vulnerability.
 
-Usa el aviso privado de GitHub:
+Use GitHub's private reporting feature:
 
-1. Ve a la pestaña **Security** del repositorio.
-2. Pulsa **Report a vulnerability**.
-3. Describe el problema, los pasos para reproducirlo y el impacto que tendría.
+1. Go to the **Security** tab of the repository.
+2. Click **Report a vulnerability**.
+3. Describe the problem, the steps to reproduce it and the impact it would have.
 
-Si el botón **Report a vulnerability** no aparece, abre un issue **sin detalles** de la vulnerabilidad, solo para pedir un canal privado de contacto.
+If the **Report a vulnerability** button does not appear, open an issue **without any details** of the vulnerability, only to ask for a private contact channel.
 
-Intentaremos responder en un plazo razonable y coordinar la corrección antes de hacer pública la información.
+We will try to respond within a reasonable time and coordinate the fix before making the information public.
 
-## Alcance
+## Scope
 
-Se consideran en alcance, entre otras cosas:
+The following are in scope, among others:
 
-- **Sesión y JWT**: emisión, validación, caducidad y renovación de la sesión con el servidor.
-- **Ejecución de acciones recibidas por push**: cualquier forma en que un mensaje de n8n pueda provocar acciones en el móvil sin la confirmación o el permiso adecuados.
-- **Almacenamiento de credenciales en el móvil**: la sesión se guarda en almacenamiento cifrado; cualquier fuga de tokens o secretos fuera de él es un problema.
-- **Plantillas de n8n**: flows de ejemplo o plantillas que expongan datos o acciones de forma insegura.
+- **Session and JWT**: issuance, validation, expiry and renewal of the session with the server.
+- **Execution of actions received by push**: any way in which a message from n8n could trigger actions on the phone without the proper confirmation or permission.
+- **Credential storage on the phone**: the session is stored in encrypted storage; any leak of tokens or secrets outside it is a problem.
+- **n8n templates**: example flows or templates that expose data or actions insecurely.
 
-Quedan fuera los problemas que dependen de un servidor n8n mal configurado por su propietario (por ejemplo, un webhook sin autenticación que el propio usuario ha desactivado) y los fallos en software de terceros, que deben reportarse a sus autores.
+Out of scope are problems that depend on an n8n server misconfigured by its owner (for example, a webhook without authentication that the user has disabled) and failures in third-party software, which must be reported to their authors.
 
-## Modelo de seguridad (resumen)
+## Security model (summary)
 
-El modelo completo está en [docs/PROTOCOL.md, sección 2](docs/PROTOCOL.md#2-seguridad). En resumen:
+The full model is in [docs/PROTOCOL.md, section 2](docs/PROTOCOL.md#2-security). In short:
 
-- **Solo HTTPS**: la app no acepta servidores `http://` y no permite tráfico en claro.
-- **Intercambio de sesión**: la app obtiene un token de Firebase y el servidor lo cambia por un JWT de corta duración (12 h). Los webhooks de las apps deben exigir ese JWT (las plantillas lo hacen).
-- **Renovación automática**: la app pide un JWT nuevo antes de que caduque y, si el servidor rechaza la sesión, la renueva una vez.
-- **Almacenamiento**: la sesión va en almacenamiento cifrado respaldado por el Keystore de Android. La copia offline, la bandeja y los permisos de automatización van sin cifrar y nunca contienen el JWT ni el token de Firebase.
-- **Mismo origen**: una spec no puede enviar el JWT a otro dominio; las URL absolutas de envío deben ser HTTPS y tener el mismo host y puerto que el servidor.
-- **Revocación**: el acceso se quita deshabilitando al usuario en el servidor, y los JWT ya emitidos se invalidan rotando el secreto de la credencial JWT.
-- **Validación en el servidor**: los campos obligatorios de una spec solo sirven para la interfaz; el servidor debe validar siempre lo que recibe.
+- **HTTPS only**: the app does not accept `http://` servers and does not allow cleartext traffic.
+- **Session exchange**: the app obtains a Firebase token and the server exchanges it for a short-lived JWT (12 h). App webhooks must require that JWT (the templates do).
+- **Automatic renewal**: the app requests a new JWT before the current one expires and, if the server rejects the session, renews it once.
+- **Storage**: the session is kept in encrypted storage backed by the Android Keystore. The offline copy, the inbox and the automation permissions are stored unencrypted and never contain the JWT or the Firebase token.
+- **Same origin**: a spec cannot send the JWT to another domain; absolute submit URLs must be HTTPS and use the same host and port as the server.
+- **Revocation**: access is removed by disabling the user on the server, and JWTs already issued are invalidated by rotating the secret of the JWT credential.
+- **Server-side validation**: the required fields of a spec are only for the interface; the server must always validate what it receives.
 
-## Buenas prácticas para contribuir
+## Best practices for contributing
 
-- No subas claves, tokens, `google-services.json`, claves de firma (`*.jks`, `*.keystore`) ni datos personales.
-- Si un secreto llega a subirse por error, revócalo primero y después limpia el historial.
+- Do not commit keys, tokens, `google-services.json`, signing keys (`*.jks`, `*.keystore`) or personal data.
+- If a secret is pushed by mistake, revoke it first and then clean the history.

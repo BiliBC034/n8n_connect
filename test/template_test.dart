@@ -4,11 +4,11 @@ import 'package:n8n_connect/core/template.dart';
 void main() {
   group('Template.render', () {
     test('replaces a placeholder with the state value', () {
-      expect(Template.render('Hola {{name}}', {'name': 'Ana'}), 'Hola Ana');
+      expect(Template.render('Hello {{name}}', {'name': 'Ana'}), 'Hello Ana');
     });
 
     test('missing key renders as empty text', () {
-      expect(Template.render('Hola {{name}}', {}), 'Hola ');
+      expect(Template.render('Hello {{name}}', {}), 'Hello ');
     });
 
     test('accepts spaces inside the braces', () {
@@ -34,7 +34,7 @@ void main() {
     });
 
     test('returns text without placeholders unchanged', () {
-      expect(Template.render('sin nada', {'name': 'x'}), 'sin nada');
+      expect(Template.render('just text', {'name': 'x'}), 'just text');
     });
   });
 

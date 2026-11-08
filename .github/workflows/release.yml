@@ -1,11 +1,27 @@
 name: Release
 
-# Se ejecuta al subir un tag vX.Y.Z. El tag debe coincidir con la versión de pubspec.yaml.
-# Requisitos (secretos del repositorio): ver docs/RELEASING.md.
+# Runs when a vX.Y.Z tag is pushed: builds the APK and publishes a GitHub release.
+# The tag must match the version in pubspec.yaml.
+# It can also be started by hand from the Actions tab (workflow_dispatch): it builds the
+# selected ref and distributes the APK to testers with Firebase App Distribution.
+# A manual run does not create a GitHub release and does not check the tag or the CHANGELOG.
+# Requirements (repository secrets): see docs/RELEASING.md.
 on:
   push:
     tags:
       - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      groups:
+        description: 'Comma-separated Firebase App Distribution group aliases. Empty: the FIREBASE_TESTER_GROUPS variable, or testers.'
+        type: string
+        default: 'testers'
+        required: false
+      release_notes:
+        description: 'Release notes for testers (optional). Empty: a generated test-build note.'
+        type: string
+        default: ''
+        required: false
 
 permissions:
   contents: write
@@ -15,14 +31,14 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  publicar:
-    name: Publicar la release
+  release:
+    name: Build, release and distribute
     runs-on: ubuntu-latest
     steps:
-      - name: Descargar el código
-        uses: actions/checkout@v4
+      - name: Check out the code
+        uses: actions/checkout@v5
 
-      - name: Comprobar los secretos necesarios
+      - name: Check the required secrets
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
@@ -33,55 +49,80 @@ jobs:
           FIREBASE_WEB_CLIENT_DART_BASE64: ${{ secrets.FIREBASE_WEB_CLIENT_DART_BASE64 }}
         run: |
           set -euo pipefail
-          faltan=()
-          for nombre in ANDROID_KEYSTORE_BASE64 ANDROID_KEYSTORE_PASSWORD ANDROID_KEY_ALIAS \
+          missing=()
+          for name in ANDROID_KEYSTORE_BASE64 ANDROID_KEYSTORE_PASSWORD ANDROID_KEY_ALIAS \
             ANDROID_KEY_PASSWORD GOOGLE_SERVICES_JSON_BASE64 FIREBASE_OPTIONS_DART_BASE64 \
             FIREBASE_WEB_CLIENT_DART_BASE64; do
-            if [[ -z "${!nombre:-}" ]]; then
-              faltan+=("$nombre")
+            if [[ -z "${!name:-}" ]]; then
+              missing+=("$name")
             fi
           done
-          if (( ${#faltan[@]} > 0 )); then
-            echo "::error::Faltan secretos en GitHub Actions: ${faltan[*]}. Consulta docs/RELEASING.md (tools/release_secrets.sh --gh los sube)."
+          if (( ${#missing[@]} > 0 )); then
+            echo "::error::Missing GitHub Actions secrets: ${missing[*]}. See docs/RELEASING.md (tools/release_secrets.sh --gh uploads them)."
             exit 1
           fi
-          echo "Los 7 secretos están definidos."
+          echo "All 7 required secrets are set."
 
-      - name: Comprobar que el tag coincide con pubspec.yaml
+      - name: Check the Firebase App Distribution secret
+        id: firebase
         env:
-          REF_NAME: ${{ github.ref_name }}
+          FIREBASE_APP_DISTRIBUTION_SA_BASE64: ${{ secrets.FIREBASE_APP_DISTRIBUTION_SA_BASE64 }}
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          set -euo pipefail
+          if [[ -n "$FIREBASE_APP_DISTRIBUTION_SA_BASE64" ]]; then
+            echo "distribute=true" >> "$GITHUB_OUTPUT"
+            echo "Firebase App Distribution is configured: the APK will be distributed to testers."
+          elif [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
+            echo "::error::Manual runs distribute the APK to testers, so the FIREBASE_APP_DISTRIBUTION_SA_BASE64 secret is required. See docs/RELEASING.md."
+            exit 1
+          else
+            echo "distribute=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::FIREBASE_APP_DISTRIBUTION_SA_BASE64 is not set: skipping Firebase App Distribution."
+          fi
+
+      - name: Read the version from pubspec.yaml
         run: |
           set -euo pipefail
           version="$(sed -nE 's/^version:[[:space:]]*([0-9]+\.[0-9]+\.[0-9]+)(\+[0-9]+)?[[:space:]]*$/\1/p' pubspec.yaml | head -n1)"
           if [[ -z "$version" ]]; then
-            echo "::error::No se encuentra 'version: X.Y.Z' en pubspec.yaml"
-            exit 1
-          fi
-          esperado="v${version}"
-          if [[ "$REF_NAME" != "$esperado" ]]; then
-            echo "::error::El tag ${REF_NAME} no coincide con la versión de pubspec.yaml (${esperado}). Corrige el tag o pubspec.yaml."
+            echo "::error::Cannot find 'version: X.Y.Z' in pubspec.yaml"
             exit 1
           fi
           echo "VERSION=${version}" >> "$GITHUB_ENV"
-          echo "Versión de la release: ${version}"
+          echo "Release version: ${version}"
 
-      - name: Comprobar las notas del CHANGELOG
+      - name: Check that the tag matches pubspec.yaml
+        if: github.event_name == 'push'
+        env:
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          expected="v${VERSION}"
+          if [[ "$REF_NAME" != "$expected" ]]; then
+            echo "::error::Tag ${REF_NAME} does not match the pubspec.yaml version (${expected}). Fix the tag or pubspec.yaml."
+            exit 1
+          fi
+          echo "Tag ${REF_NAME} matches pubspec.yaml."
+
+      - name: Check the CHANGELOG notes
+        if: github.event_name == 'push'
         run: tools/changelog_section.sh "$VERSION" > /dev/null
 
-      - name: Instalar Java
-        uses: actions/setup-java@v4
+      - name: Install Java
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '17'
 
-      - name: Instalar Flutter
+      - name: Install Flutter
         uses: subosito/flutter-action@v2
         with:
           channel: stable
           flutter-version: '3.35.x'
           cache: true
 
-      - name: Restaurar los archivos de Firebase y la firma
+      - name: Restore the Firebase files and the signing key
         env:
           GOOGLE_SERVICES_JSON_BASE64: ${{ secrets.GOOGLE_SERVICES_JSON_BASE64 }}
           FIREBASE_OPTIONS_DART_BASE64: ${{ secrets.FIREBASE_OPTIONS_DART_BASE64 }}
@@ -103,31 +144,36 @@ jobs:
             printf 'keyPassword=%s\n' "$ANDROID_KEY_PASSWORD"
           } > android/key.properties
 
-      - name: Obtener dependencias
+      - name: Get dependencies
         run: flutter pub get
 
-      - name: Ejecutar los tests
+      - name: Run tests
         run: flutter test
 
-      - name: Compilar la APK de release
+      - name: Build the release APK
         run: flutter build apk --release
 
-      - name: Verificar la firma (no puede ser la clave debug)
+      - name: Verify the signature (must not be the debug key)
         run: tools/verify_apk_signature.sh build/app/outputs/flutter-apk/app-release.apk
 
-      - name: Preparar la APK, el checksum y las notas
+      - name: Prepare the APK, checksum and notes
         env:
-          NOTAS_PATH: ${{ runner.temp }}/RELEASE_NOTES.md
+          NOTES_PATH: ${{ runner.temp }}/RELEASE_NOTES.md
+          EVENT_NAME: ${{ github.event_name }}
         run: |
           set -euo pipefail
           apk="n8n-connect-v${VERSION}.apk"
           cp build/app/outputs/flutter-apk/app-release.apk "$apk"
           sha256sum "$apk" > "$apk.sha256"
-          tools/changelog_section.sh "$VERSION" > "$NOTAS_PATH"
-          echo "Artefactos:"
-          ls -l "$apk" "$apk.sha256" "$NOTAS_PATH"
+          echo "Artifacts:"
+          ls -l "$apk" "$apk.sha256"
+          if [[ "$EVENT_NAME" == "push" ]]; then
+            tools/changelog_section.sh "$VERSION" > "$NOTES_PATH"
+            ls -l "$NOTES_PATH"
+          fi
 
-      - name: Publicar la release en GitHub
+      - name: Publish the release on GitHub
+        if: github.event_name == 'push'
         uses: softprops/action-gh-release@v2
         with:
           name: n8n Connect v${{ env.VERSION }}
@@ -138,6 +184,55 @@ jobs:
             n8n-connect-v${{ env.VERSION }}.apk.sha256
           fail_on_unmatched_files: true
 
-      - name: Borrar el keystore y key.properties
+      - name: Distribute to testers with Firebase App Distribution
+        if: steps.firebase.outputs.distribute == 'true'
+        env:
+          FIREBASE_APP_DISTRIBUTION_SA_BASE64: ${{ secrets.FIREBASE_APP_DISTRIBUTION_SA_BASE64 }}
+          EVENT_NAME: ${{ github.event_name }}
+          GROUPS_INPUT: ${{ inputs.groups }}
+          FIREBASE_TESTER_GROUPS: ${{ vars.FIREBASE_TESTER_GROUPS }}
+          RELEASE_NOTES_INPUT: ${{ inputs.release_notes }}
+          REF_NAME: ${{ github.ref_name }}
+          NOTES_PATH: ${{ runner.temp }}/RELEASE_NOTES.md
+        run: |
+          set -euo pipefail
+          sa_file="$RUNNER_TEMP/firebase-sa.json"
+          printf '%s' "$FIREBASE_APP_DISTRIBUTION_SA_BASE64" | base64 -d > "$sa_file"
+          export GOOGLE_APPLICATION_CREDENTIALS="$sa_file"
+
+          app_id="$(jq -r '[.client[] | select(.client_info.android_client_info.package_name == "me.bilibc.n8n_connect") | .client_info.mobilesdk_app_id][0] // empty' android/app/google-services.json)"
+          if [[ -z "$app_id" ]]; then
+            echo "::error::No Firebase Android app for me.bilibc.n8n_connect found in android/app/google-services.json"
+            exit 1
+          fi
+
+          if [[ -n "$GROUPS_INPUT" ]]; then
+            groups="$GROUPS_INPUT"
+          elif [[ -n "$FIREBASE_TESTER_GROUPS" ]]; then
+            groups="$FIREBASE_TESTER_GROUPS"
+          else
+            groups="testers"
+          fi
+          groups="${groups// /}"
+
+          if [[ "$EVENT_NAME" == "push" ]]; then
+            notes_file="$NOTES_PATH"
+          else
+            notes_file="$RUNNER_TEMP/distribution-notes.md"
+            if [[ -n "$RELEASE_NOTES_INPUT" ]]; then
+              printf '%s\n' "$RELEASE_NOTES_INPUT" > "$notes_file"
+            else
+              printf 'Test build %s from %s (v%s)\n' "${GITHUB_SHA:0:7}" "$REF_NAME" "$VERSION" > "$notes_file"
+            fi
+          fi
+
+          apk="n8n-connect-v${VERSION}.apk"
+          echo "Distributing ${apk} to the groups: ${groups}"
+          npx --yes firebase-tools@15 appdistribution:distribute "$apk" \
+            --app "$app_id" \
+            --groups "$groups" \
+            --release-notes-file "$notes_file"
+
+      - name: Delete the keystore, key.properties and Firebase credentials
         if: always()
-        run: rm -f "$RUNNER_TEMP/release.jks" android/key.properties
+        run: rm -f "$RUNNER_TEMP/release.jks" "$RUNNER_TEMP/firebase-sa.json" android/key.properties

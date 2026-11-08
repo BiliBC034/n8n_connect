@@ -31,11 +31,11 @@ void main() {
 
     test('maps a server error object to its code, status and message', () {
       const body =
-          '{"error":{"code":"not_allowed","message":"La cuenta x no está autorizada"}}';
+          '{"error":{"code":"not_allowed","message":"Account x is not allowed"}}';
       final error = _catchApiError(() => decode(403, body));
       expect(error.code, 'not_allowed');
       expect(error.status, 403);
-      expect(error.message, 'La cuenta x no está autorizada');
+      expect(error.message, 'Account x is not allowed');
       expect(error.isAccessRevoked, isTrue);
     });
 

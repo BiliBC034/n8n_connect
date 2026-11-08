@@ -1,25 +1,25 @@
 ---
-name: Error
-about: Informar de un fallo de la app
+name: Bug report
+about: Report a bug in the app
 labels: bug
 ---
 
-## Descripción
+## Description
 
-<!-- Qué ocurre y qué esperabas que ocurriera. -->
+<!-- What happens and what you expected to happen. -->
 
-## Pasos para reproducirlo
+## Steps to reproduce
 
 1.
 2.
 3.
 
-## Entorno
+## Environment
 
-- Versión de Android:
-- Modelo del móvil:
-- Versión de la app:
+- Android version:
+- Phone model:
+- App version:
 
-## Registros o capturas
+## Logs or screenshots
 
-<!-- Quita cualquier dato personal, claves o IPs antes de pegar logs. -->
+<!-- Remove any personal data, keys or IPs before pasting logs. -->

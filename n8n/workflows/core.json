@@ -19,7 +19,7 @@
     },
     {
       "id": "5187584c-20d9-4600-823e-353518ef7bdb",
-      "name": "Responder info",
+      "name": "Respond info",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
       "position": [
@@ -60,7 +60,7 @@
     },
     {
       "id": "782f4d51-b3c7-4034-acd5-00cbe352287e",
-      "name": "Verificar ID token en Firebase",
+      "name": "Verify ID token with Firebase",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.5,
       "position": [
@@ -87,7 +87,7 @@
     },
     {
       "id": "fb3beb6c-83b8-4dbb-9902-9d7b91dda99f",
-      "name": "Validar identidad",
+      "name": "Validate identity",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
@@ -95,12 +95,12 @@
         304
       ],
       "parameters": {
-        "jsCode": "// Resultado de Firebase + datos del dispositivo enviados por la app\nconst res = $input.first().json;\nconst req = $(\"Auth\").first().json;\nconst fail = (status, code, message) => [{ json: { ok: false, status, error: { code, message } } }];\n\n// 400 = token rechazado por Google; cualquier otra cosa (429, 5xx, red) = Google no disponible\nif (res.statusCode !== 200) {\n  if (res.statusCode === 400) return fail(401, \"invalid_token\", \"La sesión de Firebase no es válida o ha caducado.\");\n  return fail(424, \"upstream_error\", \"No se pudo verificar la sesión con Google. Inténtalo de nuevo en unos segundos.\");\n}\nconst user = (res.body?.users ?? [])[0];\nif (!user) return fail(401, \"invalid_token\", \"La sesión de Firebase no es válida o ha caducado.\");\nif (user.disabled) return fail(403, \"account_disabled\", \"La cuenta está deshabilitada.\");\nif (!user.email) return fail(403, \"no_email\", \"La cuenta no tiene email.\");\nif (user.emailVerified !== true) return fail(403, \"email_not_verified\", \"Verifica tu email antes de conectar con el servidor.\");\n\nconst device = req.body?.device ?? {};\nconst deviceId = String(device.id ?? \"\").trim();\nif (!/^[A-Za-z0-9_-]{16,64}$/.test(deviceId)) return fail(400, \"invalid_device\", \"Identificador de dispositivo no válido.\");\n\nconst now = Math.floor(Date.now() / 1000);\nreturn [{ json: {\n  ok: true,\n  uid: user.localId,\n  email: user.email.toLowerCase(),\n  displayName: user.displayName ?? \"\",\n  iat: now,\n  exp: now + 12 * 3600,\n  device: {\n    id: deviceId,\n    name: String(device.name ?? \"\").slice(0, 80),\n    platform: String(device.platform ?? \"\").slice(0, 20),\n    fcmToken: String(device.fcmToken ?? \"\").slice(0, 4096),\n    appVersion: String(device.appVersion ?? \"\").slice(0, 40),\n  },\n} }];"
+        "jsCode": "// Firebase result + device data sent by the app\nconst res = $input.first().json;\nconst req = $(\"Auth\").first().json;\nconst fail = (status, code, message) => [{ json: { ok: false, status, error: { code, message } } }];\n\n// 400 = token rejected by Google; anything else (429, 5xx, network) = Google unavailable\nif (res.statusCode !== 200) {\n  if (res.statusCode === 400) return fail(401, \"invalid_token\", \"The Firebase session is not valid or has expired.\");\n  return fail(424, \"upstream_error\", \"The session could not be verified with Google. Try again in a few seconds.\");\n}\nconst user = (res.body?.users ?? [])[0];\nif (!user) return fail(401, \"invalid_token\", \"The Firebase session is not valid or has expired.\");\nif (user.disabled) return fail(403, \"account_disabled\", \"The account is disabled.\");\nif (!user.email) return fail(403, \"no_email\", \"The account has no email.\");\nif (user.emailVerified !== true) return fail(403, \"email_not_verified\", \"Verify your email before connecting to the server.\");\n\nconst device = req.body?.device ?? {};\nconst deviceId = String(device.id ?? \"\").trim();\nif (!/^[A-Za-z0-9_-]{16,64}$/.test(deviceId)) return fail(400, \"invalid_device\", \"Invalid device identifier.\");\n\nconst now = Math.floor(Date.now() / 1000);\nreturn [{ json: {\n  ok: true,\n  uid: user.localId,\n  email: user.email.toLowerCase(),\n  displayName: user.displayName ?? \"\",\n  iat: now,\n  exp: now + 12 * 3600,\n  device: {\n    id: deviceId,\n    name: String(device.name ?? \"\").slice(0, 80),\n    platform: String(device.platform ?? \"\").slice(0, 20),\n    fcmToken: String(device.fcmToken ?? \"\").slice(0, 4096),\n    appVersion: String(device.appVersion ?? \"\").slice(0, 40),\n  },\n} }];"
       }
     },
     {
       "id": "601c7c40-8fef-4fed-a190-ad85f5d79ebe",
-      "name": "¿Identidad válida?",
+      "name": "Identity valid?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
@@ -133,7 +133,7 @@
     },
     {
       "id": "edc22936-29e4-46eb-9027-c41da241c649",
-      "name": "Buscar usuario",
+      "name": "Find user",
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1.1,
       "position": [
@@ -163,7 +163,7 @@
     },
     {
       "id": "6ffc8b10-d089-42ab-929b-d04f9cc4929c",
-      "name": "¿Usuario autorizado?",
+      "name": "User authorized?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
@@ -196,7 +196,7 @@
     },
     {
       "id": "3d3b49bc-0a9b-460d-9de3-46dca460918e",
-      "name": "Registrar dispositivo",
+      "name": "Register device",
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1.1,
       "position": [
@@ -216,24 +216,24 @@
           "conditions": [
             {
               "keyName": "device_id",
-              "keyValue": "={{ $(\"Validar identidad\").first().json.device.id }}"
+              "keyValue": "={{ $(\"Validate identity\").first().json.device.id }}"
             },
             {
               "keyName": "email",
-              "keyValue": "={{ $(\"Validar identidad\").first().json.email }}"
+              "keyValue": "={{ $(\"Validate identity\").first().json.email }}"
             }
           ]
         },
         "columns": {
           "mappingMode": "defineBelow",
           "value": {
-            "device_id": "={{ $(\"Validar identidad\").first().json.device.id }}",
-            "email": "={{ $(\"Validar identidad\").first().json.email }}",
-            "uid": "={{ $(\"Validar identidad\").first().json.uid }}",
-            "name": "={{ $(\"Validar identidad\").first().json.device.name }}",
-            "platform": "={{ $(\"Validar identidad\").first().json.device.platform }}",
-            "fcm_token": "={{ $(\"Validar identidad\").first().json.device.fcmToken }}",
-            "app_version": "={{ $(\"Validar identidad\").first().json.device.appVersion }}",
+            "device_id": "={{ $(\"Validate identity\").first().json.device.id }}",
+            "email": "={{ $(\"Validate identity\").first().json.email }}",
+            "uid": "={{ $(\"Validate identity\").first().json.uid }}",
+            "name": "={{ $(\"Validate identity\").first().json.device.name }}",
+            "platform": "={{ $(\"Validate identity\").first().json.device.platform }}",
+            "fcm_token": "={{ $(\"Validate identity\").first().json.device.fcmToken }}",
+            "app_version": "={{ $(\"Validate identity\").first().json.device.appVersion }}",
             "last_seen": "={{ $now.toISO() }}"
           },
           "matchingColumns": [],
@@ -327,7 +327,7 @@
     },
     {
       "id": "85c09816-94a7-4ccb-8592-3faf6d11d42a",
-      "name": "Firmar sesión",
+      "name": "Sign session",
       "type": "n8n-nodes-base.jwt",
       "typeVersion": 1,
       "position": [
@@ -336,7 +336,7 @@
       ],
       "parameters": {
         "useJson": true,
-        "claimsJson": "={{ JSON.stringify({ sub: $(\"Validar identidad\").first().json.uid, email: $(\"Validar identidad\").first().json.email, name: $(\"Buscar usuario\").first().json.name || $(\"Validar identidad\").first().json.displayName, role: $(\"Buscar usuario\").first().json.role || \"user\", did: $(\"Validar identidad\").first().json.device.id, aud: \"n8n-connect\", iss: \"n8n-connect\", iat: $(\"Validar identidad\").first().json.iat, exp: $(\"Validar identidad\").first().json.exp }) }}",
+        "claimsJson": "={{ JSON.stringify({ sub: $(\"Validate identity\").first().json.uid, email: $(\"Validate identity\").first().json.email, name: $(\"Find user\").first().json.name || $(\"Validate identity\").first().json.displayName, role: $(\"Find user\").first().json.role || \"user\", did: $(\"Validate identity\").first().json.device.id, aud: \"n8n-connect\", iss: \"n8n-connect\", iat: $(\"Validate identity\").first().json.iat, exp: $(\"Validate identity\").first().json.exp }) }}",
         "options": {
           "algorithm": "HS256"
         }
@@ -351,7 +351,7 @@
     },
     {
       "id": "3a3ba081-7978-4565-84fe-c311ae940424",
-      "name": "Responder sesión",
+      "name": "Respond session",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
       "position": [
@@ -360,7 +360,7 @@
       ],
       "parameters": {
         "respondWith": "json",
-        "responseBody": "={{ { token: $json.token, expiresAt: new Date($(\"Validar identidad\").first().json.exp * 1000).toISOString(), user: { email: $(\"Validar identidad\").first().json.email, name: $(\"Buscar usuario\").first().json.name || $(\"Validar identidad\").first().json.displayName, role: $(\"Buscar usuario\").first().json.role || \"user\" }, server: { name: \"REPLACE_SERVER_NAME\" } } }}",
+        "responseBody": "={{ { token: $json.token, expiresAt: new Date($(\"Validate identity\").first().json.exp * 1000).toISOString(), user: { email: $(\"Validate identity\").first().json.email, name: $(\"Find user\").first().json.name || $(\"Validate identity\").first().json.displayName, role: $(\"Find user\").first().json.role || \"user\" }, server: { name: \"REPLACE_SERVER_NAME\" } } }}",
         "options": {
           "responseHeaders": {
             "entries": [
@@ -375,7 +375,7 @@
     },
     {
       "id": "120a1ec6-4f64-4634-b599-ab6d9076cf68",
-      "name": "Responder no autorizado",
+      "name": "Respond not allowed",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
       "position": [
@@ -384,7 +384,7 @@
       ],
       "parameters": {
         "respondWith": "json",
-        "responseBody": "={{ { error: { code: \"not_allowed\", message: \"La cuenta \" + $(\"Validar identidad\").first().json.email + \" no está autorizada en este servidor.\" } } }}",
+        "responseBody": "={{ { error: { code: \"not_allowed\", message: \"The account \" + $(\"Validate identity\").first().json.email + \" is not authorized on this server.\" } } }}",
         "options": {
           "responseCode": 403
         }
@@ -392,7 +392,7 @@
     },
     {
       "id": "6fe48bf4-7d13-4c54-9c1b-5f79542e13c5",
-      "name": "Responder error de identidad",
+      "name": "Respond identity error",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
       "position": [
@@ -432,7 +432,7 @@
     },
     {
       "id": "f2639e7d-14cb-409a-ade0-e3868826b7b4",
-      "name": "Leer apps",
+      "name": "Read apps",
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1.1,
       "position": [
@@ -462,7 +462,7 @@
     },
     {
       "id": "59365292-499e-4ea0-adda-4d3ade1b550b",
-      "name": "Apps del usuario",
+      "name": "User apps",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
@@ -470,12 +470,12 @@
         704
       ],
       "parameters": {
-        "jsCode": "// Solo apps activas y permitidas para el email de la sesión (allowed_emails vacío = todos)\nconst email = String($(\"Apps\").first().json.jwtPayload?.email ?? \"\").toLowerCase();\nconst apps = $input.all()\n  .map((item) => item.json)\n  .filter((row) => row.app_id && row.path)\n  .filter((row) => {\n    const allowed = String(row.allowed_emails ?? \"\").split(\",\").map((s) => s.trim().toLowerCase()).filter(Boolean);\n    return allowed.length === 0 || allowed.includes(email);\n  })\n  .sort((a, b) => (a.sort ?? 0) - (b.sort ?? 0))\n  .map((row) => ({\n    id: row.app_id,\n    name: row.name || row.app_id,\n    description: row.description ?? \"\",\n    icon: row.icon || \"apps\",\n    color: row.color ?? \"\",\n    path: row.path,\n  }));\nreturn [{ json: { apps } }];"
+        "jsCode": "// Only active apps allowed for the session email (empty allowed_emails = everyone)\nconst email = String($(\"Apps\").first().json.jwtPayload?.email ?? \"\").toLowerCase();\nconst apps = $input.all()\n  .map((item) => item.json)\n  .filter((row) => row.app_id && row.path)\n  .filter((row) => {\n    const allowed = String(row.allowed_emails ?? \"\").split(\",\").map((s) => s.trim().toLowerCase()).filter(Boolean);\n    return allowed.length === 0 || allowed.includes(email);\n  })\n  .sort((a, b) => (a.sort ?? 0) - (b.sort ?? 0))\n  .map((row) => ({\n    id: row.app_id,\n    name: row.name || row.app_id,\n    description: row.description ?? \"\",\n    icon: row.icon || \"apps\",\n    color: row.color ?? \"\",\n    path: row.path,\n  }));\nreturn [{ json: { apps } }];"
       }
     },
     {
       "id": "c97b0742-7472-451f-8d35-939e1630b5ac",
-      "name": "Responder apps",
+      "name": "Respond apps",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
       "position": [
@@ -521,7 +521,7 @@
     },
     {
       "id": "87e846d9-208f-47a9-bb7d-8b78439d2df3",
-      "name": "Olvidar token push",
+      "name": "Forget push token",
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1.1,
       "position": [
@@ -588,7 +588,7 @@
     },
     {
       "id": "79dd91d4-616b-4aab-8676-0f400877cd9b",
-      "name": "Responder logout",
+      "name": "Respond logout",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
       "position": [
@@ -612,7 +612,7 @@
         48
       ],
       "parameters": {
-        "content": "## 1. Sesión segura\nLa app manda su **ID token de Firebase** (Authorization: Bearer). Google lo valida, se comprueba que el email esté en **nc_users** (enabled) y se registra el dispositivo en **nc_devices**.\n\nDevuelve un **JWT propio (12 h)** firmado con la credencial **n8n Connect JWT**. La key de la URL es la API key pública de Firebase de la app.",
+        "content": "## 1. Secure session\nThe app sends its **Firebase ID token** (Authorization: Bearer). Google validates it, the email is checked in **nc_users** (enabled), and the device is registered in **nc_devices**.\n\nIt returns its own **JWT (12 h)** signed with the **n8n Connect JWT** credential. The key in the URL is the app's public Firebase API key.",
         "height": 384,
         "width": 1600,
         "color": 4
@@ -628,7 +628,7 @@
         608
       ],
       "parameters": {
-        "content": "## 2. Catálogo de apps\nWebhook con **JWT Auth** (credencial n8n Connect JWT). Lista las filas activas de **nc_apps**; `allowed_emails` vacío = visible para todos.\n\nPara crear una app nueva: workflow con webhook GET en `path` + JWT Auth que devuelva la spec JSON, y una fila en nc_apps.",
+        "content": "## 2. App catalog\nWebhook with **JWT Auth** (n8n Connect JWT credential). Lists the active rows of **nc_apps**; empty `allowed_emails` = visible to everyone.\n\nTo create a new app: a workflow with a GET webhook at `path` + JWT Auth that returns the app spec JSON, and a row in nc_apps.",
         "height": 224,
         "width": 640,
         "color": 5
@@ -644,7 +644,7 @@
         912
       ],
       "parameters": {
-        "content": "## 3. Logout\nBorra el token FCM del dispositivo para que deje de recibir acciones push.",
+        "content": "## 3. Logout\nClears the device's FCM token so it stops receiving push actions.",
         "height": 224,
         "width": 400,
         "color": 7
@@ -652,7 +652,7 @@
     },
     {
       "id": "1fbddc35-3cad-451d-b574-7e70211c9688",
-      "name": "Liberar token de otras cuentas",
+      "name": "Release token from other accounts",
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1.1,
       "position": [
@@ -674,12 +674,12 @@
             {
               "keyName": "fcm_token",
               "condition": "eq",
-              "keyValue": "={{ $(\"Validar identidad\").first().json.device.fcmToken }}"
+              "keyValue": "={{ $(\"Validate identity\").first().json.device.fcmToken }}"
             },
             {
               "keyName": "email",
               "condition": "neq",
-              "keyValue": "={{ $(\"Validar identidad\").first().json.email }}"
+              "keyValue": "={{ $(\"Validate identity\").first().json.email }}"
             }
           ]
         },
@@ -715,7 +715,7 @@
       "main": [
         [
           {
-            "node": "Responder info",
+            "node": "Respond info",
             "type": "main",
             "index": 0
           }
@@ -726,98 +726,98 @@
       "main": [
         [
           {
-            "node": "Verificar ID token en Firebase",
+            "node": "Verify ID token with Firebase",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Verificar ID token en Firebase": {
+    "Verify ID token with Firebase": {
       "main": [
         [
           {
-            "node": "Validar identidad",
+            "node": "Validate identity",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Validar identidad": {
+    "Validate identity": {
       "main": [
         [
           {
-            "node": "¿Identidad válida?",
+            "node": "Identity valid?",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "¿Identidad válida?": {
+    "Identity valid?": {
       "main": [
         [
           {
-            "node": "Buscar usuario",
+            "node": "Find user",
             "type": "main",
             "index": 0
           }
         ],
         [
           {
-            "node": "Responder error de identidad",
+            "node": "Respond identity error",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Buscar usuario": {
+    "Find user": {
       "main": [
         [
           {
-            "node": "¿Usuario autorizado?",
+            "node": "User authorized?",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "¿Usuario autorizado?": {
+    "User authorized?": {
       "main": [
         [
           {
-            "node": "Liberar token de otras cuentas",
+            "node": "Release token from other accounts",
             "type": "main",
             "index": 0
           }
         ],
         [
           {
-            "node": "Responder no autorizado",
+            "node": "Respond not allowed",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Registrar dispositivo": {
+    "Register device": {
       "main": [
         [
           {
-            "node": "Firmar sesión",
+            "node": "Sign session",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Firmar sesión": {
+    "Sign session": {
       "main": [
         [
           {
-            "node": "Responder sesión",
+            "node": "Respond session",
             "type": "main",
             "index": 0
           }
@@ -828,29 +828,29 @@
       "main": [
         [
           {
-            "node": "Leer apps",
+            "node": "Read apps",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Leer apps": {
+    "Read apps": {
       "main": [
         [
           {
-            "node": "Apps del usuario",
+            "node": "User apps",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Apps del usuario": {
+    "User apps": {
       "main": [
         [
           {
-            "node": "Responder apps",
+            "node": "Respond apps",
             "type": "main",
             "index": 0
           }
@@ -861,29 +861,29 @@
       "main": [
         [
           {
-            "node": "Olvidar token push",
+            "node": "Forget push token",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Olvidar token push": {
+    "Forget push token": {
       "main": [
         [
           {
-            "node": "Responder logout",
+            "node": "Respond logout",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Liberar token de otras cuentas": {
+    "Release token from other accounts": {
       "main": [
         [
           {
-            "node": "Registrar dispositivo",
+            "node": "Register device",
             "type": "main",
             "index": 0
           }

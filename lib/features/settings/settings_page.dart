@@ -310,13 +310,13 @@ class _SettingsPageState extends State<SettingsPage> {
     }
   }
 
-  // Método para mostrar el diálogo de selección de idioma
+  // Shows the language selection dialog
   void _showLanguageDialog() {
     final l10n = AppLocalizations.of(context);
     final localeService = Provider.of<LocaleService>(
       context,
       listen: false,
-    ); // Obtener de Provider
+    ); // Get from Provider
     final supportedLocales = AppLocalizations.delegate.supportedLocales;
 
     showDialog(
@@ -336,15 +336,15 @@ class _SettingsPageState extends State<SettingsPage> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Opción para usar idioma del dispositivo
+              // Option to use the device language
               RadioListTile<Locale?>(
                 title: Text(l10n.useDeviceLanguage),
                 value: null,
               ),
-              // Opciones para cada idioma soportado
+              // Options for each supported language
               ...supportedLocales.map((locale) {
                 String languageName;
-                // Asignar nombres legibles a los locales soportados
+                // Human-readable names for the supported locales
                 switch (locale.languageCode) {
                   case 'en':
                     languageName = l10n.englishLanguage;
@@ -373,7 +373,7 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  // Método para mostrar el diálogo de selección de tema
+  // Shows the theme selection dialog
   void _showThemeDialog() {
     final l10n = AppLocalizations.of(context);
     final themeService = Provider.of<ThemeService>(context, listen: false);
@@ -471,7 +471,7 @@ class _SettingsPageState extends State<SettingsPage> {
                       ),
                       const Divider(),
 
-                      // --- Idioma ---
+                      // --- Language ---
                       ListTile(
                         leading: const Icon(Icons.language),
                         title: Text(l10n.languageSettings),
@@ -486,14 +486,14 @@ class _SettingsPageState extends State<SettingsPage> {
                       ),
                       const Divider(),
 
-                      // --- Tema ---
+                      // --- Theme ---
                       ListTile(
                         leading: const Icon(
                           Icons.brightness_6_outlined,
-                        ), // Icono para tema
+                        ), // Theme icon
                         title: Text(l10n.themeSettings),
                         subtitle: Text(
-                          // Mostrar el modo actual
+                          // Show the current mode
                           themeService.themeMode == ThemeMode.light
                               ? l10n.lightTheme
                               : themeService.themeMode == ThemeMode.dark
@@ -562,7 +562,7 @@ class _SettingsPageState extends State<SettingsPage> {
                         const Divider(),
                       ],
 
-                      // --- Tutorial y acerca de ---
+                      // --- Tutorial and about ---
                       ListTile(
                         leading: const Icon(Icons.school_outlined),
                         title: Text(l10n.settingsTutorialTile),

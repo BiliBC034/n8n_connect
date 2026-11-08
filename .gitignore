@@ -18,8 +18,8 @@ migrate_working_dir/
 *.iws
 .idea/
 
-# VS Code: el comentario de abajo permite versionar la configuración de VS Code.
-# Quita el # si no quieres subirla.
+# VS Code: the commented line below keeps the VS Code configuration under version control.
+# Remove the # if you do not want to commit it.
 #.vscode/
 
 # Flutter / Dart / Pub
@@ -32,19 +32,19 @@ migrate_working_dir/
 /build/
 /coverage/
 
-# Símbolos de depuración y ofuscación
+# Debug symbols and obfuscation
 app.*.symbols
 app.*.map.json
 
-# Android Studio: artefactos de compilación
+# Android Studio: build artifacts
 /android/app/debug
 /android/app/profile
 /android/app/release
 
-# Android: salida de compilación
+# Android: build output
 /android/build/
 
-# Configuración local de Firebase (ver README)
+# Local Firebase configuration (see README)
 /google-services.json
 android/app/google-services.json
 lib/firebase_options.dart
@@ -52,17 +52,17 @@ lib/firebase_web_client.dart
 firebase.json
 ios/Runner/GoogleService-Info.plist
 
-# Herramientas de agentes y notas personales
+# Agent tools and personal notes
 CLAUDE.md
 .claude/
 NOTES.local.md
 
-# Firma de Android
+# Android signing
 *.jks
 *.keystore
 android/key.properties
 
-# Secretos locales: cuentas de servicio y variables de entorno (los .example sí se versionan)
+# Local secrets: service accounts and environment variables (the .example files are versioned)
 *-firebase-adminsdk-*.json
 service-account*.json
 cuenta-servicio*.json
@@ -70,7 +70,7 @@ cuenta-servicio*.json
 .env.*
 !.env.example
 
-# Artefactos
+# Artifacts
 *.apk
 *.aab
 /dist/

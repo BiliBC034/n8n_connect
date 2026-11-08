@@ -1,20 +1,35 @@
 #!/usr/bin/env bash
-# Muestra los secretos de GitHub Actions que necesita el workflow de release
-# (.github/workflows/release.yml), a partir de los archivos locales de firma y Firebase.
+# Prints the GitHub Actions secrets needed by the release workflow
+# (.github/workflows/release.yml), built from the local signing and Firebase files.
 #
-# Uso:
-#   tools/release_secrets.sh                  imprime cada secreto y su valor
-#   tools/release_secrets.sh --gh [OWNER/REPO] sube los secretos con 'gh secret set'
+# Usage:
+#   tools/release_secrets.sh                    print each secret and its value
+#   tools/release_secrets.sh --gh [OWNER/REPO] upload the secrets with 'gh secret set'
 #
-# La salida contiene secretos: no la compartas ni la pegues en chats, issues o capturas.
-# Guía completa: docs/RELEASING.md
+# Optional secret FIREBASE_APP_DISTRIBUTION_SA_BASE64: set
+# FIREBASE_SA_JSON=/absolute/path/to/service-account.json to include it.
+#
+# The output contains secrets: do not share it or paste it into chats, issues or screenshots.
+# Full guide: docs/RELEASING.md
 set -euo pipefail
 
-raiz="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-cd "$raiz"
+root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
-# Nombres exactos de los secretos del contrato de release.
-SECRETOS=(
+# Optional App Distribution service account. It is resolved to an absolute path
+# before the cd below, so a relative path is taken from the caller's directory.
+distribution_sa_path=""
+if [[ -n "${FIREBASE_SA_JSON:-}" ]]; then
+  if [[ ! -f "$FIREBASE_SA_JSON" || ! -r "$FIREBASE_SA_JSON" ]]; then
+    echo "FIREBASE_SA_JSON is set but is not a readable file. Check the path. Nothing was printed or uploaded." >&2
+    exit 1
+  fi
+  distribution_sa_path="$(cd "$(dirname "$FIREBASE_SA_JSON")" && pwd)/$(basename "$FIREBASE_SA_JSON")"
+fi
+
+cd "$root"
+
+# Exact names of the secrets in the release contract.
+SECRETS=(
   ANDROID_KEYSTORE_BASE64
   ANDROID_KEYSTORE_PASSWORD
   ANDROID_KEY_ALIAS
@@ -23,153 +38,166 @@ SECRETOS=(
   FIREBASE_OPTIONS_DART_BASE64
   FIREBASE_WEB_CLIENT_DART_BASE64
 )
+# Optional secret: included only when FIREBASE_SA_JSON points to a file.
+OPTIONAL_SECRET=FIREBASE_APP_DISTRIBUTION_SA_BASE64
 
-uso() {
-  echo "Uso:" >&2
-  echo "  $0                      imprime los secretos" >&2
-  echo "  $0 --gh [OWNER/REPO]    sube los secretos con 'gh secret set'" >&2
+usage() {
+  echo "Usage:" >&2
+  echo "  $0                      print the secrets" >&2
+  echo "  $0 --gh [OWNER/REPO]    upload the secrets with 'gh secret set'" >&2
 }
 
-# 1. Argumentos.
-modo_gh=0
+# 1. Arguments.
+gh_mode=0
 repo=""
 case "${1:-}" in
   "")
-    if [[ $# -gt 0 ]]; then uso; exit 2; fi
+    if [[ $# -gt 0 ]]; then usage; exit 2; fi
     ;;
   --gh)
-    modo_gh=1
+    gh_mode=1
     repo="${2:-}"
-    if [[ $# -gt 2 ]]; then uso; exit 2; fi
+    if [[ $# -gt 2 ]]; then usage; exit 2; fi
     ;;
   -h|--help)
-    uso
+    usage
     exit 0
     ;;
   *)
-    echo "Opción no reconocida: $1" >&2
-    uso
+    echo "Unrecognized option: $1" >&2
+    usage
     exit 2
     ;;
 esac
 
-# 2. Archivos de origen. Si falta alguno, no se imprime nada.
-ruta_props="android/key.properties"
-ruta_firebase_opts="lib/firebase_options.dart"
-ruta_firebase_web="lib/firebase_web_client.dart"
-ruta_google_services="android/app/google-services.json"
+# 2. Source files. If any of them is missing, nothing is printed.
+props_path="android/key.properties"
+firebase_opts_path="lib/firebase_options.dart"
+firebase_web_path="lib/firebase_web_client.dart"
+google_services_path="android/app/google-services.json"
 
-faltan=0
-for ruta in "$ruta_props" "$ruta_firebase_opts" "$ruta_firebase_web" "$ruta_google_services"; do
-  if [[ ! -f "$ruta" ]]; then
-    echo "FALTA: $ruta" >&2
-    faltan=1
+missing=0
+for path in "$props_path" "$firebase_opts_path" "$firebase_web_path" "$google_services_path"; do
+  if [[ ! -f "$path" ]]; then
+    echo "MISSING: $path" >&2
+    missing=1
   fi
 done
-if (( faltan )); then
-  echo "Faltan archivos locales de firma o Firebase. Consulta docs/RELEASING.md." >&2
+if (( missing )); then
+  echo "Local signing or Firebase files are missing. See docs/RELEASING.md." >&2
   exit 1
 fi
 
-# 3. Parseo seguro de android/key.properties: línea a línea, sin 'source' ni eval.
-#    Sigue la misma regla que java.util.Properties (que usa Gradle): la clave va antes del
-#    primer '=', se quitan los espacios de alrededor de la clave y los iniciales del valor,
-#    y el valor se copia tal cual (el workflow lo vuelve a escribir igual en key.properties).
+# 3. Safe parsing of android/key.properties: line by line, without 'source' or eval.
+#    It follows the same rule as java.util.Properties (used by Gradle): the key is
+#    everything before the first '=', spaces around the key and leading spaces of the
+#    value are removed, and the value is copied as is (the workflow writes it back
+#    unchanged into key.properties).
 STORE_FILE=""
 STORE_PASSWORD=""
 KEY_ALIAS=""
 KEY_PASSWORD=""
-linea_num=0
-while IFS= read -r linea || [[ -n "$linea" ]]; do
-  linea_num=$((linea_num + 1))
-  linea="${linea%$'\r'}"
-  # Líneas vacías y comentarios.
-  if [[ "$linea" =~ ^[[:space:]]*$ || "$linea" =~ ^[[:space:]]*[#!] ]]; then
+line_num=0
+while IFS= read -r line || [[ -n "$line" ]]; do
+  line_num=$((line_num + 1))
+  line="${line%$'\r'}"
+  # Blank lines and comments.
+  if [[ "$line" =~ ^[[:space:]]*$ || "$line" =~ ^[[:space:]]*[#!] ]]; then
     continue
   fi
-  if [[ "$linea" != *=* ]]; then
-    echo "Línea $linea_num de $ruta_props sin '=': se ignora (no se muestra su contenido)" >&2
+  if [[ "$line" != *=* ]]; then
+    echo "Line $line_num of $props_path has no '=': ignored (its content is not shown)" >&2
     continue
   fi
-  clave="${linea%%=*}"
-  valor="${linea#*=}"
-  clave="${clave#"${clave%%[![:space:]]*}"}"
-  clave="${clave%"${clave##*[![:space:]]}"}"
-  valor="${valor#"${valor%%[![:space:]]*}"}"
-  case "$clave" in
-    storeFile) STORE_FILE="$valor" ;;
-    storePassword) STORE_PASSWORD="$valor" ;;
-    keyAlias) KEY_ALIAS="$valor" ;;
-    keyPassword) KEY_PASSWORD="$valor" ;;
+  key="${line%%=*}"
+  value="${line#*=}"
+  key="${key#"${key%%[![:space:]]*}"}"
+  key="${key%"${key##*[![:space:]]}"}"
+  value="${value#"${value%%[![:space:]]*}"}"
+  case "$key" in
+    storeFile) STORE_FILE="$value" ;;
+    storePassword) STORE_PASSWORD="$value" ;;
+    keyAlias) KEY_ALIAS="$value" ;;
+    keyPassword) KEY_PASSWORD="$value" ;;
     *) ;;
   esac
-done < "$ruta_props"
+done < "$props_path"
 
-for clave_obligatoria in STORE_FILE STORE_PASSWORD KEY_ALIAS KEY_PASSWORD; do
-  if [[ -z "${!clave_obligatoria}" ]]; then
-    echo "Falta una clave obligatoria en $ruta_props (storeFile, storePassword, keyAlias, keyPassword)" >&2
+for required_key in STORE_FILE STORE_PASSWORD KEY_ALIAS KEY_PASSWORD; do
+  if [[ -z "${!required_key}" ]]; then
+    echo "Missing a required key in $props_path (storeFile, storePassword, keyAlias, keyPassword)" >&2
     exit 1
   fi
 done
 
-# storeFile puede ser relativo a android/app, como lo resuelve Gradle con file().
+# storeFile can be relative to android/app, as Gradle resolves it with file().
 if [[ "$STORE_FILE" != /* ]]; then
-  STORE_FILE="$raiz/android/app/$STORE_FILE"
+  STORE_FILE="$root/android/app/$STORE_FILE"
 fi
 if [[ ! -f "$STORE_FILE" ]]; then
-  echo "No existe el keystore indicado en storeFile: $STORE_FILE" >&2
+  echo "The keystore given in storeFile does not exist: $STORE_FILE" >&2
   exit 1
 fi
 
-# 4. Valor de cada secreto.
-valor_de() {
+# 4. Secrets to print or upload, and the value of each one.
+secrets=("${SECRETS[@]}")
+if [[ -n "$distribution_sa_path" ]]; then
+  secrets+=("$OPTIONAL_SECRET")
+else
+  echo "NOTE: $OPTIONAL_SECRET is optional and was not included: FIREBASE_SA_JSON is not set." >&2
+  echo "      It is needed only to upload to App Distribution from GitHub Actions. To include it, run:" >&2
+  echo "      FIREBASE_SA_JSON=/absolute/path/to/service-account.json tools/release_secrets.sh" >&2
+fi
+
+value_of() {
   case "$1" in
     ANDROID_KEYSTORE_BASE64) base64 -w0 < "$STORE_FILE" ;;
     ANDROID_KEYSTORE_PASSWORD) printf '%s' "$STORE_PASSWORD" ;;
     ANDROID_KEY_ALIAS) printf '%s' "$KEY_ALIAS" ;;
     ANDROID_KEY_PASSWORD) printf '%s' "$KEY_PASSWORD" ;;
-    GOOGLE_SERVICES_JSON_BASE64) base64 -w0 < "$ruta_google_services" ;;
-    FIREBASE_OPTIONS_DART_BASE64) base64 -w0 < "$ruta_firebase_opts" ;;
-    FIREBASE_WEB_CLIENT_DART_BASE64) base64 -w0 < "$ruta_firebase_web" ;;
+    GOOGLE_SERVICES_JSON_BASE64) base64 -w0 < "$google_services_path" ;;
+    FIREBASE_OPTIONS_DART_BASE64) base64 -w0 < "$firebase_opts_path" ;;
+    FIREBASE_WEB_CLIENT_DART_BASE64) base64 -w0 < "$firebase_web_path" ;;
+    FIREBASE_APP_DISTRIBUTION_SA_BASE64) base64 -w0 < "$distribution_sa_path" ;;
     *)
-      echo "Secreto desconocido: $1" >&2
+      echo "Unknown secret: $1" >&2
       return 1
       ;;
   esac
 }
 
-# 5. Modo impresión.
-if (( ! modo_gh )); then
-  echo "AVISO: la salida contiene SECRETOS. No la compartas ni la pegues en chats, issues o capturas." >&2
+# 5. Print mode.
+if (( ! gh_mode )); then
+  echo "WARNING: the output contains SECRETS. Do not share it or paste it into chats, issues or screenshots." >&2
   echo >&2
-  for nombre in "${SECRETOS[@]}"; do
-    echo "$nombre"
-    valor_de "$nombre"
+  for name in "${secrets[@]}"; do
+    echo "$name"
+    value_of "$name"
     echo
     echo
   done
   exit 0
 fi
 
-# 6. Modo --gh: subida con gh. El valor viaja por stdin, nunca como argumento.
-echo "AVISO: los secretos se suben al repositorio de GitHub. No muestro sus valores." >&2
+# 6. --gh mode: upload with gh. The value goes through stdin, never as an argument.
+echo "WARNING: the secrets are uploaded to the GitHub repository. Their values are not shown." >&2
 if ! command -v gh >/dev/null 2>&1; then
-  echo "No se encuentra 'gh'. Instálalo (https://cli.github.com) o usa el modo sin --gh." >&2
+  echo "'gh' not found. Install it (https://cli.github.com) or use the mode without --gh." >&2
   exit 1
 fi
 if ! gh auth status >/dev/null 2>&1; then
-  echo "gh no está autenticado. Ejecuta 'gh auth login' y vuelve a intentarlo." >&2
+  echo "gh is not authenticated. Run 'gh auth login' and try again." >&2
   exit 1
 fi
 
-argumentos_repo=()
+repo_args=()
 if [[ -n "$repo" ]]; then
-  argumentos_repo=(--repo "$repo")
+  repo_args=(--repo "$repo")
 fi
 
-for nombre in "${SECRETOS[@]}"; do
-  echo "Subiendo $nombre..."
-  valor_de "$nombre" | gh secret set "$nombre" ${argumentos_repo[@]+"${argumentos_repo[@]}"}
+for name in "${secrets[@]}"; do
+  echo "Uploading $name..."
+  value_of "$name" | gh secret set "$name" ${repo_args[@]+"${repo_args[@]}"}
 done
 
-echo "Secretos subidos: ${#SECRETOS[@]}"
+echo "Secrets uploaded: ${#secrets[@]}"

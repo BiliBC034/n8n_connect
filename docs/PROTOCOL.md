@@ -1,140 +1,140 @@
-# Protocolo n8n Connect (v1)
+# n8n Connect protocol (v1)
 
-Referencia para quien crea flows en n8n que usan la app. Describe lo que la app lee, lo que envía y lo que hace con cada respuesta. La fuente de verdad es el código: `lib/core/app_config.dart`, `lib/features/server/`, `lib/features/apps/`, `lib/features/actions/`, `lib/features/push/`, `lib/features/share/`, `lib/features/automation/`, `lib/features/alarms/` y `lib/features/device_context/`.
+Reference for anyone who creates n8n workflows that the app uses. It describes what the app reads, what it sends and what it does with each response. The source of truth is the code: `lib/core/app_config.dart`, `lib/features/server/`, `lib/features/apps/`, `lib/features/actions/`, `lib/features/push/`, `lib/features/share/`, `lib/features/automation/`, `lib/features/alarms/` and `lib/features/device_context/`.
 
-1. [Visión general](#1-visión-general)
-2. [Seguridad](#2-seguridad)
-3. [Endpoints del Core](#3-endpoints-del-core)
-4. [Tablas](#4-tablas)
-5. [Cómo crear una app](#5-cómo-crear-una-app)
-6. [Spec de UI (schema 1)](#6-spec-de-ui-schema-1)
-7. [Acciones](#7-acciones)
-8. [Respuesta de submit](#8-respuesta-de-submit)
-9. [Push n8n → móvil](#9-push-n8n--móvil)
-10. [Paneles en vivo (refreshSeconds)](#10-paneles-en-vivo-refreshseconds)
-11. [Modo sin conexión](#11-modo-sin-conexión)
-12. [Bandeja de n8n](#12-bandeja-de-n8n)
-13. [Compartir con n8n](#13-compartir-con-n8n)
-14. [Automatizaciones](#14-automatizaciones)
-15. [Ejemplos](#15-ejemplos)
+1. [Overview](#1-overview)
+2. [Security](#2-security)
+3. [Core endpoints](#3-core-endpoints)
+4. [Tables](#4-tables)
+5. [How to create an app](#5-how-to-create-an-app)
+6. [UI spec (schema 1)](#6-ui-spec-schema-1)
+7. [Actions](#7-actions)
+8. [Submit response](#8-submit-response)
+9. [Push n8n → phone](#9-push-n8n--phone)
+10. [Live dashboards (refreshSeconds)](#10-live-dashboards-refreshseconds)
+11. [Offline mode](#11-offline-mode)
+12. [n8n inbox](#12-n8n-inbox)
+13. [Sharing with n8n](#13-sharing-with-n8n)
+14. [Automations](#14-automations)
+15. [Examples](#15-examples)
 
 ---
 
-## 1. Visión general
+## 1. Overview
 
-La app no tiene lógica de negocio. Dibuja una pantalla a partir de un JSON (la *spec*), guarda un estado local y ejecuta acciones del móvil cuando se lo pide n8n. Toda la decisión la toma n8n.
+The app has no business logic. It draws a screen from a JSON document (the *spec*), keeps a local state and runs phone actions when n8n asks for them. n8n makes every decision.
 
 ```
- App Android (Flutter)                              n8n (https://tu-servidor)
+ Android app (Flutter)                              n8n (https://your-server)
  ─────────────────────                              ─────────────────────────
- 1. Login Firebase ── ID token ──────────────────►  n8n-connect/auth
+ 1. Firebase login ── ID token ──────────────────►  n8n-connect/auth
                    ◄──────────── JWT (12 h) ─────
- 2. Catálogo ─────── GET (JWT) ──────────────────►  n8n-connect/apps
- 3. Spec de la app ── GET app.path (JWT) ────────►  webhook de la app
- 4. Botón submit ─── POST/GET + state (JWT) ─────►  webhook de la app
+ 2. Catalog ──────── GET (JWT) ──────────────────►  n8n-connect/apps
+ 3. App spec ─────── GET app.path (JWT) ─────────►  app webhook
+ 4. Submit button ── POST/GET + state (JWT) ─────►  app webhook
                    ◄── {state, screen, message, actions, spec}
 
- Push (n8n → móvil)
- n8n flow ──► Execute Sub-workflow "Enviar al móvil"
-           ──► FCM (mensaje de datos, prioridad alta) ──► la app
-                                                      muestra diálogo o notificación
-                                                      y ejecuta las acciones si procede
+ Push (n8n → phone)
+ n8n workflow ──► Execute Sub-workflow "Send to phone"
+              ──► FCM (data message, high priority) ──► the app
+                                                        shows a dialog or notification
+                                                        and runs the actions if appropriate
 ```
 
-Piezas:
+Parts:
 
-- **Core**: workflow "n8n Connect · Core" (`n8n-connect/info`, `auth`, `apps`, `logout`). Plantilla: [n8n/workflows/core.json](../n8n/workflows/core.json).
-- **Apps**: un par de webhooks por app (una spec GET y uno o más submit POST/GET).
-- **Push**: sub-workflow "n8n Connect · Enviar al móvil", que envía el mensaje FCM a los dispositivos del usuario. Plantilla: [n8n/workflows/send-to-phone.json](../n8n/workflows/send-to-phone.json).
-- **Compartir**: workflow "n8n Connect · Compartir" (`n8n-connect/share`), que recibe texto o enlaces de otras apps ([§13](#13-compartir-con-n8n)). Plantilla: [n8n/workflows/share.json](../n8n/workflows/share.json).
+- **Core**: the "n8n Connect · Core" workflow (`n8n-connect/info`, `auth`, `apps`, `logout`). Template: [n8n/workflows/core.json](../n8n/workflows/core.json).
+- **Apps**: a pair of webhooks per app (a GET spec and one or more POST/GET submits).
+- **Push**: the "n8n Connect · Send to phone" sub-workflow, which sends the FCM message to the user's devices. Template: [n8n/workflows/send-to-phone.json](../n8n/workflows/send-to-phone.json).
+- **Share**: the "n8n Connect · Share" workflow (`n8n-connect/share`), which receives text or links from other apps ([§13](#13-sharing-with-n8n)). Template: [n8n/workflows/share.json](../n8n/workflows/share.json).
 
 ---
 
-## 2. Seguridad
+## 2. Security
 
-**Transporte**
-- Solo HTTPS. `normalizeServerUrl` rechaza `http://`, y `AndroidManifest.xml` tiene `usesCleartextTraffic="false"`.
-- En una spec, las imágenes (`image`) solo se cargan si la URL es `https`.
+**Transport**
+- HTTPS only. `normalizeServerUrl` rejects `http://`, and `AndroidManifest.xml` sets `usesCleartextTraffic="false"`.
+- In a spec, images (`image`) load only if the URL is `https`.
 
-**Sesión**
-1. La app obtiene un ID token de Firebase (email/contraseña o Google).
-2. `POST n8n-connect/auth` con ese token. El Core lo verifica con Google, comprueba `emailVerified` y que el email esté habilitado en `nc_users`.
-3. El Core responde con un JWT HS256 de 12 h. Claims: `sub`, `email`, `name`, `role`, `did`, `aud="n8n-connect"`, `iss="n8n-connect"`, `iat`, `exp`.
-4. Todos los demás webhooks exigen ese JWT (ver abajo).
+**Session**
+1. The app gets a Firebase ID token (email/password or Google).
+2. `POST n8n-connect/auth` with that token. The Core verifies it with Google, checks `emailVerified` and that the email is enabled in `nc_users`.
+3. The Core replies with a JWT (HS256) valid for 12 h. Claims: `sub`, `email`, `name`, `role`, `did`, `aud="n8n-connect"`, `iss="n8n-connect"`, `iat`, `exp`.
+4. All other webhooks require that JWT (see below).
 
-**Webhooks protegidos**
-- En cada webhook de app, el nodo Webhook tiene *Authentication = "JWT Auth"* con la credencial de JWT. Dentro del flow, los claims verificados están en `$json.jwtPayload` (email, role, did…).
-- Sin token o con token inválido, n8n responde 401/403. La app lo trata como `session_invalid` si el 401 no trae `error.code` o si el 403 no tiene un cuerpo JSON de tipo objeto ([§3.6](#36-formato-de-error)).
+**Protected webhooks**
+- In each app webhook, the Webhook node has *Authentication = "JWT Auth"* with the JWT credential. Inside the workflow, the verified claims are in `$json.jwtPayload` (email, role, did…).
+- Without a token or with an invalid one, n8n responds 401/403. The app treats it as `session_invalid` if the 401 has no `error.code` or if the 403 has no JSON object body ([§3.6](#36-error-format)).
 
-**Almacenamiento en el móvil**
-- La sesión (URL, JWT, expiración, uid, usuario) va en `FlutterSecureStorage` con `encryptedSharedPreferences` (almacén respaldado por Android Keystore).
-- La última URL del servidor va en SharedPreferences (no es secreta).
-- El id del dispositivo es aleatorio y también va en almacenamiento seguro.
-- La copia offline (`nc.cache.*`, [§11](#11-modo-sin-conexión)) y la bandeja (`nc.push.history`, [§12](#12-bandeja-de-n8n)) van en SharedPreferences, **sin cifrar**. Guardan specs, catálogo y contenido de los pushes; nunca el JWT ni el ID token de Firebase. Los permisos de automatización (`nc.auto.*`, [§14.1](#141-permiso-por-app)) también van sin cifrar; solo guardan qué apps están permitidas.
+**Storage on the phone**
+- The session (URL, JWT, expiry, uid, user) is kept in `FlutterSecureStorage` with `encryptedSharedPreferences` (a store backed by the Android Keystore).
+- The last server URL is kept in SharedPreferences (it is not secret).
+- The device ID is random and is also kept in secure storage.
+- The offline copy (`nc.cache.*`, [§11](#11-offline-mode)) and the inbox (`nc.push.history`, [§12](#12-n8n-inbox)) are kept in SharedPreferences, **unencrypted**. They hold specs, the catalog and push content; never the JWT or the Firebase ID token. The automation permissions (`nc.auto.*`, [§14.1](#141-per-app-permission)) are also unencrypted; they only store which apps are allowed.
 
-**Renovación**
-- Antes de cada petición, si al JWT le quedan menos de 2 min (`sessionRefreshMargin`), la app pide uno nuevo.
-- Si el servidor responde `session_invalid` (401 sin `error.code`, o 403 cuyo cuerpo no es un objeto JSON), la app renueva la sesión y repite la petición una vez.
-- Al cambiar el token FCM, la app también renueva la sesión para registrar el token nuevo.
-- Renovar usa el ID token de Firebase, así que la app reintenta una vez forzando un ID token nuevo si el servidor responde `invalid_token` o `email_not_verified`.
+**Renewal**
+- Before each request, if the JWT has less than 2 min left (`sessionRefreshMargin`), the app asks for a new one.
+- If the server responds `session_invalid` (401 without `error.code`, or 403 whose body is not a JSON object), the app renews the session and repeats the request once.
+- When the FCM token changes, the app also renews the session to register the new token.
+- Renewing uses the Firebase ID token, so the app retries once, forcing a new ID token, if the server responds `invalid_token` or `email_not_verified`.
 
-**URL de submit (mismo origen)**
-- Las rutas relativas (`n8n-connect/apps/x/y`) se resuelven bajo `{servidor}/webhook/`. No pueden contener `.` ni `..`.
-- Una URL absoluta solo se acepta si es `https` con el mismo host y puerto que el servidor. Si no, la app devuelve `foreignOrigin` y no envía nada. Así una spec no puede llevarse el JWT a otro dominio.
+**Submit URL (same origin)**
+- Relative paths (`n8n-connect/apps/x/y`) resolve under `{server}/webhook/`. They cannot contain `.` or `..`.
+- An absolute URL is accepted only if it is `https` with the same host and port as the server. Otherwise the app returns `foreignOrigin` and sends nothing. This way a spec cannot take the JWT to another domain.
 
 **Logout**
-- Desconectar desde Configuración o Conectar, cambiar de servidor y borrar la cuenta llaman a `POST n8n-connect/logout` (timeout 6 s, errores ignorados). El servidor borra el `fcm_token` del dispositivo y deja de enviarle push.
-- Si la sesión de Firebase desaparece por otra vía (p. ej. cambio de usuario detectado por la app), la app borra la sesión local, llama a `logout` y borra los permisos de automatización y el token FCM del móvil ([§14.1](#141-permiso-por-app)).
-- Cuando la sesión con el servidor se cierra (desconectar, o acceso revocado con `not_allowed`, `account_disabled`, `email_not_verified` o `no_email`), también se borran la copia offline ([§11](#11-modo-sin-conexión)) y los permisos de automatización ([§14.1](#141-permiso-por-app)). La bandeja no se borra al desconectar.
+- Disconnecting from Settings or Connect, changing the server and deleting the account call `POST n8n-connect/logout` (6 s timeout, errors ignored). The server deletes the device's `fcm_token` and stops sending it push messages.
+- If the Firebase session disappears another way (for example, a user change detected by the app), the app deletes the local session, calls `logout`, and deletes the automation permissions and the phone's FCM token ([§14.1](#141-per-app-permission)).
+- When the server session closes (disconnecting, or access revoked with `not_allowed`, `account_disabled`, `email_not_verified` or `no_email`), the offline copy ([§11](#11-offline-mode)) and the automation permissions ([§14.1](#141-per-app-permission)) are also deleted. The inbox is not deleted when you disconnect.
 
-**Cómo revocar acceso**
+**How to revoke access**
 
-| Quieres… | Haz esto | Efecto |
+| You want to… | Do this | Effect |
 |---|---|---|
-| Cortar el acceso de una persona a todo el servidor | `nc_users.enabled = false` | La app no renueva la sesión: al renovarla, el Core responde `not_allowed` (403) y la app borra la sesión. El JWT ya emitido sigue valiendo hasta 12 h. |
-| Quitar acceso a una sola app | Quitar su email de `allowed_emails` en `nc_apps` (vacío = todos) | Solo tiene efecto inmediato (403 `app_forbidden`) si la app usa «Acceso a app» ([§5](#5-cómo-crear-una-app)). Si no lo usa, la app solo deja de aparecer en el catálogo. |
-| Cortar todas las sesiones JWT ya emitidas (p. ej. una sesión robada) | Rotar el secreto de la credencial JWT | Todos los JWT dejan de valer de inmediato. Las apps piden una sesión nueva con Firebase automáticamente, así que esto **no bloquea** a nadie. Para bloquear a una persona, usa la primera fila. |
-| Dejar de enviar push a un dispositivo | Borrar su fila de `nc_devices` | Deja de recibir push. No invalida su JWT. |
+| Cut one person's access to the whole server | `nc_users.enabled = false` | The app does not renew the session: when it does, the Core responds `not_allowed` (403) and the app deletes the session. A JWT already issued stays valid for up to 12 h. |
+| Remove access to a single app | Remove their email from `allowed_emails` in `nc_apps` (empty = everyone) | Takes effect immediately (403 `app_forbidden`) only if the app uses "App access" ([§5](#5-how-to-create-an-app)). If it does not, the app only stops appearing in the catalog. |
+| Cut all JWT sessions already issued (for example, a stolen session) | Rotate the secret of the JWT credential | All JWTs stop working immediately. Apps request a new session with Firebase automatically, so this **does not block** anyone. To block a person, use the first row. |
+| Stop sending push to a device | Delete its row in `nc_devices` | It stops receiving push. It does not invalidate its JWT. |
 
-**Validación**
-- Los `required` de la spec son solo para la experiencia de usuario. El servidor debe validar siempre lo que recibe.
-- Cada webhook de app debe comprobar además el acceso con el sub-workflow «n8n Connect · Acceso a app» (ver [§5](#5-cómo-crear-una-app)). El JWT prueba quién llama, no que pueda usar esa app.
+**Validation**
+- The `required` fields of the spec are for user experience only. The server must always validate what it receives.
+- Each app webhook must also check access with the "n8n Connect · App access" sub-workflow (see [§5](#5-how-to-create-an-app)). The JWT proves who is calling, not that they may use that app.
 
-**Credenciales**: las que hacen falta para los nodos JWT y cómo crearlas están en [n8n/README.md](../n8n/README.md).
+**Credentials**: the ones needed for the JWT nodes and how to create them are in [n8n/README.md](../n8n/README.md).
 
 ---
 
-## 3. Endpoints del Core
+## 3. Core endpoints
 
-Todas las rutas son relativas a `{servidor}/webhook/`. Las constantes están en `lib/core/app_config.dart`.
+All routes are relative to `{server}/webhook/`. The constants are in `lib/core/app_config.dart`.
 
-| Ruta | Método | Auth | Uso en la app |
+| Route | Method | Auth | Use in the app |
 |---|---|---|---|
-| `n8n-connect/info` | GET | pública | Comprobar que el servidor es n8n Connect |
-| `n8n-connect/auth` | POST | Firebase ID token | Abrir sesión (y renovarla) |
-| `n8n-connect/apps` | GET | JWT | Catálogo de apps |
-| `n8n-connect/logout` | POST | JWT | Borrar el token push del dispositivo |
-| `n8n-connect/share` | POST | JWT | Enviar texto o un enlace compartido desde otra app (workflow "n8n Connect · Compartir", [§13](#13-compartir-con-n8n)) |
+| `n8n-connect/info` | GET | public | Check that the server is n8n Connect |
+| `n8n-connect/auth` | POST | Firebase ID token | Open a session (and renew it) |
+| `n8n-connect/apps` | GET | JWT | App catalog |
+| `n8n-connect/logout` | POST | JWT | Delete the device's push token |
+| `n8n-connect/share` | POST | JWT | Send text or a shared link from another app (workflow "n8n Connect · Share", [§13](#13-sharing-with-n8n)) |
 
-Cada app tiene además su propio `path` (ver [§3.4](#34-spec-de-una-app-y-submit)).
+Each app also has its own `path` (see [§3.4](#34-app-spec-and-submit)).
 
 ### 3.1 GET `n8n-connect/info`
 
-Respuesta:
+Response:
 ```json
-{"service": "n8n-connect", "protocol": 1, "name": "Mi n8n", "firebaseProjectId": "mi-proyecto-firebase"}
+{"service": "n8n-connect", "protocol": 1, "name": "My n8n", "firebaseProjectId": "my-firebase-project"}
 ```
 
-Validación en la app:
-- `service` distinto de `"n8n-connect"` → `not_n8n_connect`.
-- `protocol` mayor que 1 (`AppConfig.protocolVersion`) → `unsupported_protocol`.
-- `firebaseProjectId` distinto del proyecto Firebase de la app → `wrong_firebase_project`.
+Validation in the app:
+- `service` other than `"n8n-connect"` → `not_n8n_connect`.
+- `protocol` greater than 1 (`AppConfig.protocolVersion`) → `unsupported_protocol`.
+- `firebaseProjectId` different from the app's Firebase project → `wrong_firebase_project`.
 
 ### 3.2 POST `n8n-connect/auth`
 
-Cabeceras: `Authorization: Bearer <Firebase ID token>`, `Content-Type: application/json`.
+Headers: `Authorization: Bearer <Firebase ID token>`, `Content-Type: application/json`.
 
-Cuerpo:
+Body:
 ```json
 {
   "device": {
@@ -146,43 +146,43 @@ Cuerpo:
   }
 }
 ```
-`fcmToken` va vacío (`""`) si el móvil no tiene token FCM.
+`fcmToken` is empty (`""`) if the phone has no FCM token.
 
-Respuesta 200:
+Response 200:
 ```json
 {
   "token": "eyJhbGciOi…",
   "expiresAt": "2026-11-03T00:00:00Z",
-  "user": {"email": "tu@email.com", "name": "Tu nombre", "role": "admin"},
-  "server": {"name": "Mi n8n"}
+  "user": {"email": "you@email.com", "name": "Your name", "role": "admin"},
+  "server": {"name": "My n8n"}
 }
 ```
-`token` y `expiresAt` (ISO 8601) son obligatorios; si faltan, la app devuelve `bad_response`.
+`token` and `expiresAt` (ISO 8601) are required; if either is missing, the app returns `bad_response`.
 
-Errores (cuerpo `{"error": {"code", "message"}}`):
+Errors (body `{"error": {"code", "message"}}`):
 
-| Código | HTTP | Significado |
+| Code | HTTP | Meaning |
 |---|---|---|
-| `invalid_token` | 401 | ID token de Firebase inválido o caducado |
-| `account_disabled` | 403 | La cuenta de Firebase está deshabilitada |
-| `no_email` | 403 | La cuenta de Firebase no tiene email |
-| `email_not_verified` | 403 | El email no está verificado |
-| `not_allowed` | 403 | La cuenta no está autorizada: no tiene fila en `nc_users` o tiene `enabled = false` |
-| `invalid_device` | 400 | `device.id` ausente o con formato no válido (16-64 caracteres `[A-Za-z0-9_-]`) |
-| `upstream_error` | 424 | «No se pudo verificar la sesión con Google. Inténtalo de nuevo en unos segundos.» Google no responde o falla por causa distinta de un token inválido (red, 429, 5xx) |
+| `invalid_token` | 401 | Firebase ID token is invalid or expired |
+| `account_disabled` | 403 | The Firebase account is disabled |
+| `no_email` | 403 | The Firebase account has no email |
+| `email_not_verified` | 403 | The email is not verified |
+| `not_allowed` | 403 | The account is not authorized: it has no row in `nc_users` or has `enabled = false` |
+| `invalid_device` | 400 | `device.id` is missing or has an invalid format (16–64 characters `[A-Za-z0-9_-]`) |
+| `upstream_error` | 424 | "The session could not be verified with Google. Try again in a few seconds." Google does not respond or fails for a reason other than an invalid token (network, 429, 5xx) |
 
 ### 3.3 GET `n8n-connect/apps`
 
-Cabecera: `Authorization: Bearer <JWT>`.
+Header: `Authorization: Bearer <JWT>`.
 
-Respuesta:
+Response:
 ```json
 {
   "apps": [
     {
       "id": "tools",
-      "name": "Herramientas",
-      "description": "Alarma, panel en vivo, formulario y acciones del móvil",
+      "name": "Tools",
+      "description": "Alarm, live panel, form and phone actions",
       "icon": "bolt",
       "color": "#0EA5E9",
       "path": "n8n-connect/apps/tools"
@@ -190,140 +190,140 @@ Respuesta:
   ]
 }
 ```
-- Las entradas sin `id` o sin `path` se ignoran.
-- `icon`: nombre de la tabla de iconos de la app (ver [§6](#6-spec-de-ui-schema-1)). Por defecto `apps`.
-- `color`: `#RRGGBB` o `#AARRGGBB`. Si no es válido, se usa el color primario.
-- `path`: ruta del webhook que devuelve la spec de la app.
+- Entries without `id` or `path` are ignored.
+- `icon`: name from the app's icon table ([§6](#6-ui-spec-schema-1)). Default `apps`.
+- `color`: `#RRGGBB` or `#AARRGGBB`. If it is not valid, the primary color is used.
+- `path`: path of the webhook that returns the app's spec.
 
-El catálogo se cachea en memoria. Se refresca al arrastrar la lista hacia abajo, y también si la app no encuentra un `id` (p. ej. al abrirla desde un push). Además se guarda una copia en el móvil para el modo sin conexión ([§11](#11-modo-sin-conexión)).
+The catalog is cached in memory. It refreshes when the list is pulled down, and also if the app cannot find an `id` (for example, when opening it from a push). A copy is also saved on the phone for offline mode ([§11](#11-offline-mode)).
 
-### 3.4 Spec de una app y submit
+### 3.4 App spec and submit
 
-- **GET `{path}`** (JWT): devuelve la spec ([§6](#6-spec-de-ui-schema-1)). Si trae `refreshSeconds`, se vuelve a pedir cada cierto tiempo ([§10](#10-paneles-en-vivo-refreshseconds)).
-- **POST/GET/PUT/PATCH/DELETE `{ruta del submit}`** (JWT): devuelve la respuesta de submit ([§8](#8-respuesta-de-submit)).
+- **GET `{path}`** (JWT): returns the spec ([§6](#6-ui-spec-schema-1)). If it includes `refreshSeconds`, it is requested again at intervals ([§10](#10-live-dashboards-refreshseconds)).
+- **POST/GET/PUT/PATCH/DELETE `{submit path}`** (JWT): returns the submit response ([§8](#8-submit-response)).
 
 ### 3.5 POST `n8n-connect/logout`
 
-Cabecera JWT. Cuerpo vacío. Respuesta: `{"ok": true}`. El Core borra el `fcm_token` del dispositivo de la sesión.
+JWT header. Empty body. Response: `{"ok": true}`. The Core deletes the fcm_token of the session's device.
 
-### 3.6 Formato de error
+### 3.6 Error format
 
-Cualquier error de n8n puede traer:
+Any n8n error may include:
 ```json
-{"error": {"code": "algo_ha_fallado", "message": "Texto para el usuario"}}
+{"error": {"code": "something_failed", "message": "Text for the user"}}
 ```
-Si el `message` existe y el código **no** es uno de los códigos de cliente de la tabla siguiente, la app muestra ese texto tal cual. Si no, muestra un mensaje localizado según el código.
+If `message` exists and the code is **not** one of the client codes in the table below, the app shows that text as is. Otherwise, it shows a message localized for the code.
 
-Códigos de cliente (los genera la propia app, no el servidor):
+Client codes (generated by the app itself, not by the server):
 
-| Código | Cuándo |
+| Code | When |
 |---|---|
-| `network` / `timeout` | Sin red o sin respuesta (20 s, o 150 s en submit) |
-| `session_invalid` | 401 sin `error.code`, o 403 cuyo cuerpo no es un objeto JSON (JWT rechazado). Un 401 con `error.code` conserva ese código |
-| `not_found` | 404: el webhook no existe. Suele ser un workflow no publicado o una ruta mal escrita |
-| `bad_response` | Respuesta 2xx que no es JSON, o auth sin `token` |
-| `http_<status>` | Otro error HTTP sin código |
-| `not_connected` / `signed_out` | No hay sesión del servidor / no hay sesión de Firebase |
-| `app_not_found` | El `id` de la app no está en el catálogo |
-| `unsupported_spec` | `schema` mayor que 1 |
-| `bad_spec` | La spec no tiene pantallas válidas |
+| `network` / `timeout` | No network or no response (20 s, or 150 s for submit) |
+| `session_invalid` | 401 without `error.code`, or 403 whose body is not a JSON object (JWT rejected). A 401 with `error.code` keeps that code |
+| `not_found` | 404: the webhook does not exist. Usually an unpublished workflow or a mistyped path |
+| `bad_response` | 2xx response that is not JSON, or auth without `token` |
+| `http_<status>` | Another HTTP error without a code |
+| `not_connected` / `signed_out` | No server session / no Firebase session |
+| `app_not_found` | The app `id` is not in the catalog |
+| `unsupported_spec` | `schema` greater than 1 |
+| `bad_spec` | The spec has no valid screens |
 
 ---
 
-## 4. Tablas
+## 4. Tables
 
-Las tablas de datos de n8n que usa el Core.
+The n8n data tables that the Core uses.
 
-**`nc_users`**: quién puede entrar.
+**`nc_users`**: who can sign in.
 
-| Campo | Tipo | Notas |
+| Field | Type | Notes |
 |---|---|---|
-| `email` | texto | Email de la cuenta de Firebase, **en minúsculas**. Clave de búsqueda (el Core compara el email en minúsculas) |
-| `enabled` | booleano | `false` bloquea el acceso con `not_allowed` (ver [§2](#2-seguridad)) |
-| `role` | texto | Se devuelve en `user.role` |
-| `name` | texto | Se devuelve en `user.name` |
+| `email` | text | Email of the Firebase account, **in lowercase**. Lookup key (the Core compares the email in lowercase) |
+| `enabled` | boolean | `false` blocks access with `not_allowed` (see [§2](#2-security)) |
+| `role` | text | Returned in `user.role` |
+| `name` | text | Returned in `user.name` |
 
-**`nc_devices`**: dispositivos con sesión. Se hace *upsert* por `device_id` + `email`.
+**`nc_devices`**: devices with a session. Upserted by `device_id` + `email`.
 
-| Campo | Tipo | Notas |
+| Field | Type | Notes |
 |---|---|---|
-| `device_id` | texto | `device.id` |
-| `email` | texto | Dueño del dispositivo |
-| `uid` | texto | uid de Firebase |
-| `name` | texto | `device.name` (p. ej. "Pixel 8") |
-| `platform` | texto | `device.platform` (`android`) |
-| `fcm_token` | texto | Token FCM. Vacío tras logout. Es el destino de los push |
-| `app_version` | texto | `device.appVersion` |
-| `last_seen` | fecha | Última vez que el dispositivo renovó la sesión |
+| `device_id` | text | `device.id` |
+| `email` | text | Device owner |
+| `uid` | text | Firebase uid |
+| `name` | text | `device.name` (e.g. "Pixel 8") |
+| `platform` | text | `device.platform` (`android`) |
+| `fcm_token` | text | FCM token. Empty after logout. It is the target of push messages |
+| `app_version` | text | `device.appVersion` |
+| `last_seen` | date | Last time the device renewed its session |
 
-**`nc_apps`**: catálogo de apps.
+**`nc_apps`**: app catalog.
 
-| Campo | Tipo | Notas |
+| Field | Type | Notes |
 |---|---|---|
-| `app_id` | texto | Sale como `id` en `GET n8n-connect/apps` |
-| `name` | texto | |
-| `description` | texto | |
-| `icon` | texto | Nombre de icono ([§6](#6-spec-de-ui-schema-1)) |
-| `color` | texto | `#RRGGBB` |
-| `path` | texto | Ruta de la spec, p. ej. `n8n-connect/apps/tools` |
-| `enabled` | booleano | Solo las `true` aparecen |
-| `allowed_emails` | texto | Emails separados por coma. Vacío = todos los usuarios habilitados. Filtra el catálogo; para que también bloquee la app, esta debe usar «Acceso a app» ([§5](#5-cómo-crear-una-app)) |
-| `sort` | número | Orden ascendente en el catálogo |
+| `app_id` | text | Returned as `id` in `GET n8n-connect/apps` |
+| `name` | text | |
+| `description` | text | |
+| `icon` | text | Icon name ([§6](#6-ui-spec-schema-1)) |
+| `color` | text | `#RRGGBB` |
+| `path` | text | Spec path, e.g. `n8n-connect/apps/tools` |
+| `enabled` | boolean | Only the `true` ones appear |
+| `allowed_emails` | text | Comma-separated emails. Empty = all enabled users. Filters the catalog; for it to also block the app, the app must use "App access" ([§5](#5-how-to-create-an-app)) |
+| `sort` | number | Ascending order in the catalog |
 
-**`nc_inbox`**: textos enviados desde otras apps con "Compartir" ([§13](#13-compartir-con-n8n)). El workflow guarda una fila por envío.
+**`nc_inbox`**: texts sent from other apps with "Share" ([§13](#13-sharing-with-n8n)). The workflow saves one row per submission.
 
-| Campo | Notas |
+| Field | Notes |
 |---|---|
-| `email` | Usuario que comparte |
-| `text` | Texto o enlace compartido |
-| `subject` | Asunto de la app de origen. Vacío si no lo tenía |
-| `note` | Nota escrita en la app. Vacía si no se escribió |
-| `received_at` | Momento de recepción |
+| `email` | User who shares |
+| `text` | Shared text or link |
+| `subject` | Subject of the source app. Empty if it had none |
+| `note` | Note entered in the app. Empty if none was written |
+| `received_at` | Time of receipt |
 
 ---
 
-## 5. Cómo crear una app
+## 5. How to create an app
 
-1. **Diseña la spec** (JSON, [§6](#6-spec-de-ui-schema-1)) y decide qué hace cada botón ([§7](#7-acciones)).
-2. **Crea el webhook de la spec** en n8n:
-   - Nodo Webhook, método GET, path `n8n-connect/apps/<id>`.
-   - Authentication = "JWT Auth", con la credencial JWT (ver [n8n/README.md](../n8n/README.md)).
-   - Responde con el JSON de la spec.
-3. **Crea los webhooks de submit**, uno por acción de servidor, con la misma autenticación. Por ejemplo POST `n8n-connect/apps/<id>/saludar`. Responden con el JSON de [§8](#8-respuesta-de-submit).
-4. **Comprueba el acceso en cada webhook** (la spec y cada submit). Justo después del Webhook, llama al sub-workflow «n8n Connect · Acceso a app» (plantilla [n8n/workflows/app-access.json](../n8n/workflows/app-access.json)), como hace [app-tools.json](../n8n/workflows/app-tools.json):
-   - Nodo Execute Sub-workflow con `app_id` = id de la app y `email` = `{{ $json.jwtPayload.email }}`.
-   - Nodo IF sobre `allowed`: si es `true`, el flow sigue. Si no, responde 403 con `{{ { error: $json.error } }}`, que da `{"error": {"code": "app_forbidden", "message": "…"}}`.
+1. **Design the spec** (JSON, [§6](#6-ui-spec-schema-1)) and decide what each button does ([§7](#7-actions)).
+2. **Create the spec webhook** in n8n:
+   - Webhook node, GET method, path `n8n-connect/apps/<id>`.
+   - Authentication = "JWT Auth", with the JWT credential (see [n8n/README.md](../n8n/README.md)).
+   - Respond with the spec JSON.
+3. **Create the submit webhooks**, one per server action, with the same authentication. For example, POST `n8n-connect/apps/<id>/greet`. They respond with the JSON in [§8](#8-submit-response).
+4. **Check access in each webhook** (the spec and each submit). Right after the Webhook, call the "n8n Connect · App access" sub-workflow (template [n8n/workflows/app-access.json](../n8n/workflows/app-access.json)), as [app-tools.json](../n8n/workflows/app-tools.json) does:
+   - Execute Sub-workflow node with `app_id` = the app's id and `email` = `{{ $json.jwtPayload.email }}`.
+   - IF node on `allowed`: if it is `true`, the workflow continues. Otherwise, respond 403 with `{{ { error: $json.error } }}`, which gives `{"error": {"code": "app_forbidden", "message": "…"}}`.
 
-   El sub-workflow da `allowed: true` solo si la app está activa en `nc_apps` y el email está en `allowed_emails` (o la lista está vacía). Sin esta comprobación, `allowed_emails` solo filtra el catálogo ([§2](#2-seguridad)).
+   The sub-workflow gives `allowed: true` only if the app is enabled in `nc_apps` and the email is in `allowed_emails` (or the list is empty). Without this check, `allowed_emails` only filters the catalog ([§2](#2-security)).
 
-5. **Registra la app** en `nc_apps`:
+5. **Register the app** in `nc_apps`:
 
    | app_id | name | description | icon | color | path | enabled | allowed_emails | sort |
    |---|---|---|---|---|---|---|---|---|
-   | hola | Hola | Saluda desde n8n | notifications | #EA4B71 | n8n-connect/apps/hola | true | (vacío) | 10 |
+   | hello | Hello | Says hello from n8n | notifications | #EA4B71 | n8n-connect/apps/hello | true | (empty) | 10 |
 
-6. **Abre la app** y arrastra hacia abajo en la lista de apps para refrescarla.
+6. **Open the app** and pull down the app list to refresh it.
 
-Spec mínima con un formulario y un botón que envía datos:
+Minimal spec with a form and a button that sends data:
 
 ```json
 {
   "schema": 1,
-  "title": "Hola",
-  "start": "inicio",
-  "state": {"nombre": ""},
+  "title": "Hello",
+  "start": "home",
+  "state": {"name": ""},
   "screens": [
     {
-      "id": "inicio",
-      "title": "Hola",
+      "id": "home",
+      "title": "Hello",
       "components": [
-        {"type": "input", "key": "nombre", "label": "Tu nombre", "required": true},
-        {"type": "text", "text": "Escribe tu nombre y pulsa enviar", "style": "caption"},
+        {"type": "input", "key": "name", "label": "Your name", "required": true},
+        {"type": "text", "text": "Type your name and tap Send", "style": "caption"},
         {
           "type": "button",
-          "label": "Enviar",
+          "label": "Send",
           "icon": "send",
-          "action": {"type": "submit", "path": "n8n-connect/apps/hola/saludar", "loading": "Enviando…"}
+          "action": {"type": "submit", "path": "n8n-connect/apps/hello/greet", "loading": "Sending…"}
         }
       ]
     }
@@ -331,212 +331,212 @@ Spec mínima con un formulario y un botón que envía datos:
 }
 ```
 
-Respuesta del webhook `saludar` (el cuerpo que envió la app es `{"nombre": "Ana"}`):
+Response of the `greet` webhook (the body the app sent is `{"name": "Ana"}`):
 
 ```json
-{"message": "Hola, Ana"}
+{"message": "Hello, Ana"}
 ```
 
 ---
 
-## 6. Spec de UI (schema 1)
+## 6. UI spec (schema 1)
 
-Respuesta del GET de la app:
+Response of the app's GET:
 
-| Campo | Obligatorio | Descripción |
+| Field | Required | Description |
 |---|---|---|
-| `schema` | no (por defecto 1) | Versión del formato. Si es mayor que 1, la app devuelve `unsupported_spec` |
-| `title` | no | Título por defecto de las pantallas |
-| `start` | no | `id` de la pantalla inicial. Si no existe o falta, se usa la primera |
-| `state` | no | Valores iniciales (objeto) |
-| `screens` | sí | Lista de pantallas, o mapa `id → pantalla`. Sin pantallas válidas: `bad_spec` |
-| `refreshSeconds` | no | Segundos entre recargas silenciosas. Número o texto numérico; mínimo 10 (menos se ignora). Ver [§10](#10-paneles-en-vivo-refreshseconds) |
+| `schema` | no (default 1) | Format version. If greater than 1, the app returns `unsupported_spec` |
+| `title` | no | Default title for the screens |
+| `start` | no | `id` of the first screen. If it does not exist or is missing, the first screen is used |
+| `state` | no | Initial values (object) |
+| `screens` | yes | List of screens, or map `id → screen`. Without valid screens: `bad_spec` |
+| `refreshSeconds` | no | Seconds between silent reloads. Number or numeric text; minimum 10 (smaller values are ignored). See [§10](#10-live-dashboards-refreshseconds) |
 
-**Pantallas**
-- Como lista: `[{"id": "inicio", "title": "…", "components": [ … ]}]`. Las entradas sin `id` se ignoran.
-- Como mapa: `{"inicio": {"title": "…", "components": [ … ]}}`. La clave es el `id`.
-- `title` de la pantalla es el título de la barra. Si falta, se usa el `title` de la spec y, si tampoco, el nombre de la app.
+**Screens**
+- As a list: `[{"id": "home", "title": "…", "components": [ … ]}]`. Entries without `id` are ignored.
+- As a map: `{"home": {"title": "…", "components": [ … ]}}`. The key is the `id`.
+- The screen's `title` is the title in the bar. If it is missing, the spec's `title` is used and, if that is missing too, the app name.
 
-**Estado**
-- El estado empieza en `state` y se rellena con los controles (`input`, `switch`, `select`, `date`, `time`).
-- Cada control escribe su valor en `state[key]`. `input` guarda texto; `switch` guarda booleano; `select` guarda el `value` elegido; `date` guarda `yyyy-MM-dd`; `time` guarda `HH:mm`.
-- Las claves que empiezan por `_` son solo locales: no se envían en submit ([§8](#8-respuesta-de-submit)).
+**State**
+- The state starts from `state` and is filled in by the controls (`input`, `switch`, `select`, `date`, `time`).
+- Each control writes its value to `state[key]`. `input` stores text; `switch` stores a boolean; `select` stores the chosen `value`; `date` stores `yyyy-MM-dd`; `time` stores `HH:mm`.
+- Keys starting with `_` are local only: they are not sent on submit ([§8](#8-submit-response)).
 
-**Plantillas `{{…}}`**
-- `{{clave}}` se sustituye por el valor del estado. Puede ser una ruta con puntos (`{{user.name}}`) o con índices de lista (`{{items.0.title}}`).
-- Caracteres permitidos en la clave: letras, números, `_`, `.`, `$` y `-`.
-- Clave inexistente: en texto se muestra vacío.
-- **Regla del valor crudo**: si la cadena es solo un placeholder (`"{{hour}}"`), se usa el valor original (número, booleano, objeto). Aplica a los parámetros de las acciones y a `visible`. En los textos de los componentes el resultado siempre es texto.
+**`{{…}}` templates**
+- `{{key}}` is replaced by the state value. It can be a dotted path (`{{user.name}}`) or use list indexes (`{{items.0.title}}`).
+- Characters allowed in the key: letters, digits, `_`, `.`, `$` and `-`.
+- Missing key: shown as empty in text.
+- **Raw value rule**: if the string is only a placeholder (`"{{hour}}"`), the original value is used (number, boolean, object). This applies to action parameters and to `visible`. In component text, the result is always text.
 
-**`visible`**: cualquier componente puede tener `visible`. Se evalúa con plantilla y es falso si vale `null`, `false`, `0`, `""`, `"false"`, `"0"`, `"no"`, una lista vacía o un objeto vacío. Cualquier otro valor lo muestra. Sin `visible`, el componente se muestra.
+**`visible`**: any component can have `visible`. It is evaluated with the template and is false if it is `null`, `false`, `0`, `""`, `"false"`, `"0"`, `"no"`, an empty list or an empty object. Any other value shows the component. Without `visible`, the component is shown.
 
-**Validación de `required`**: al enviar un `submit`, la app revisa solo los componentes de primer nivel de la pantalla actual (no los que van dentro de una `card`). Si un `input` con `required: true` está vacío, no envía nada y muestra `Rellena "<label>"`.
+**`required` validation**: when a `submit` is sent, the app checks only the top-level components of the current screen (not those inside a `card`). If an `input` with `required: true` is empty, it sends nothing and shows `Fill in "<label>"`.
 
-**Iconos**: nombres de la tabla de `lib/features/apps/app_style.dart`. Los que no estén en esa tabla se ignoran. Lista completa: `add`, `alarm`, `alarm_add`, `apps`, `arrow_back`, `arrow_forward`, `bolt`, `calendar_today`, `camera`, `check`, `check_circle`, `close`, `cloud`, `delete`, `directions_car`, `edit`, `email`, `error`, `event`, `event_available`, `favorite`, `fitness_center`, `home`, `info`, `lightbulb`, `link`, `list`, `local_cafe`, `location_on`, `lock`, `music_note`, `notifications`, `person`, `phone`, `play_arrow`, `power`, `refresh`, `restaurant`, `schedule`, `search`, `send`, `settings`, `shopping_cart`, `star`, `stop`, `thermostat`, `timer`, `warning`, `wb_sunny`, `work`.
+**Icons**: names from the table in `lib/features/apps/app_style.dart`. Names that are not in that table are ignored. Full list: `add`, `alarm`, `alarm_add`, `apps`, `arrow_back`, `arrow_forward`, `bolt`, `calendar_today`, `camera`, `check`, `check_circle`, `close`, `cloud`, `delete`, `directions_car`, `edit`, `email`, `error`, `event`, `event_available`, `favorite`, `fitness_center`, `home`, `info`, `lightbulb`, `link`, `list`, `local_cafe`, `location_on`, `lock`, `music_note`, `notifications`, `person`, `phone`, `play_arrow`, `power`, `refresh`, `restaurant`, `schedule`, `search`, `send`, `settings`, `shopping_cart`, `star`, `stop`, `thermostat`, `timer`, `warning`, `wb_sunny`, `work`.
 
-**Componentes** (los campos son exactamente los que lee `lib/features/apps/spec_view.dart`):
+**Components** (the fields are exactly the ones read by `lib/features/apps/spec_view.dart`):
 
-| `type` | Campos | Notas |
+| `type` | Fields | Notes |
 |---|---|---|
-| `text` | `text`, `style` (`title`, `subtitle`, `caption`; por defecto cuerpo), `align` (`start`, `center`, `end`) | Texto seleccionable. `text` admite plantillas |
-| `banner` | `text`, `tone` (`info` por defecto, `success`, `warning`, `error`), `icon` | Aviso con color. `tone` admite plantillas |
-| `card` | `title`, `subtitle`, `icon`, `components` (lista) | Contenedor. Sus componentes siguen las mismas reglas |
-| `image` | `url`, `height` | Solo `https`. Si falla la carga no muestra nada |
-| `divider` | — | Línea separadora |
-| `spacer` | `height` (px, 16 por defecto) | Espacio vertical |
-| `input` | `key` (obligatorio), `label`, `hint`, `keyboard` (`text`, `number`, `email`, `phone`, `url`, `multiline`), `obscure` (booleano), `required` (booleano) | Sin `key` no se muestra. `number` solo admite dígitos, `.`, `,` y `-` |
-| `switch` | `key` (obligatorio), `label`, `description` | Guarda booleano |
-| `select` | `key` (obligatorio), `label`, `style` (`chips`, `radio`; por defecto desplegable), `options`: `[{value, label, description, disabled}]` | `value` es obligatorio en cada opción; las que no lo tengan se ignoran. `label` por defecto es el `value` |
-| `date` | `key` (obligatorio), `label` | Abre el selector de fecha. Guarda `yyyy-MM-dd` |
-| `time` | `key` (obligatorio), `label` | Abre el selector de hora. Guarda `HH:mm` |
-| `button` | `label`, `icon`, `style` (por defecto relleno; `tonal`, `outlined`, `text`), `action` y/o `actions` | Sin acciones, el botón queda deshabilitado |
-| `list` | `items`: `[{title, subtitle, trailing, icon, action / actions}]` | Tocar un elemento ejecuta sus acciones. `trailing` sustituye a la flecha |
-| `details` | `items`: `[{label, value}]` | Pares clave/valor |
-| `slider` | `key` (obligatorio), `label`, `min` (0), `max` (100), `step`, `unit` | Barra deslizante con el valor y `unit` pegado al número (sin espacio). Sin `step` es continua; con `step` muestra marcas, y si `step` da más de 1000 divisiones es continua. Si `max` ≤ `min`, `max` pasa a `min` + 1. Guarda entero si `min` y `step` (o `min` y `max`, sin `step`) son enteros; si no, decimal de 2 cifras. Sin valor empieza en `min` |
-| `checkbox` | `key` (obligatorio), `label`, `description` | Casilla con descripción opcional. Guarda booleano |
-| `multiselect` | `key` (obligatorio), `label`, `options`: `[{value, label, disabled}]` | Chips de selección múltiple. Guarda la lista de `value` en el orden de `options`; los valores que no estén en `options` se conservan al final. Las opciones sin `value` se ignoran. `label` por defecto es `value` |
-| `stepper` | `key` (obligatorio), `label`, `min`, `max`, `step` (1) | Botones − y + con el valor entre ambos. Sin `min` o `max`, no hay límite por ese lado. El botón se desactiva en el límite. Guarda entero si el paso y el valor son enteros; si no, decimal de 2 cifras. Sin valor empieza en `min` (o en 0) |
-| `progress` | `value`, `max`, `label` | Barra de progreso con porcentaje. Sin `max` vale 100 si `value` es mayor que 1, y 1 si no. Se acota entre 0 % y 100 % |
-| `metric` | `label`, `value`, `unit`, `icon`, `tone`, `caption` | Tarjeta de indicador: etiqueta, valor grande, unidad y pie opcional. `tone` `success` (verde), `warning` (ámbar) o `error` colorea el valor; otro valor usa el color normal |
-| `grid` | `columns` (2; se acota a 1–4), `components` | Filas de columnas iguales separadas 12 px. Los hijos con `visible` falso se quitan antes de repartir, así que el resto se reordena. Cada hijo se dibuja como cualquier componente |
-| `table` | `columns` (cabeceras), `rows` (listas de celdas) | Tabla de solo lectura con desplazamiento horizontal. Las filas cortas se rellenan con celdas vacías, las largas se recortan al número de cabeceras y las que no son listas se omiten. Sin `columns` no muestra nada |
+| `text` | `text`, `style` (`title`, `subtitle`, `caption`; default body), `align` (`start`, `center`, `end`) | Selectable text. `text` supports templates |
+| `banner` | `text`, `tone` (`info` by default, `success`, `warning`, `error`), `icon` | Colored notice. `tone` supports templates |
+| `card` | `title`, `subtitle`, `icon`, `components` (list) | Container. Its components follow the same rules |
+| `image` | `url`, `height` | `https` only. If loading fails, nothing is shown |
+| `divider` | — | Separator line |
+| `spacer` | `height` (px, 16 by default) | Vertical space |
+| `input` | `key` (required), `label`, `hint`, `keyboard` (`text`, `number`, `email`, `phone`, `url`, `multiline`), `obscure` (boolean), `required` (boolean) | Not shown without `key`. `number` only accepts digits, `.`, `,` and `-` |
+| `switch` | `key` (required), `label`, `description` | Stores a boolean |
+| `select` | `key` (required), `label`, `style` (`chips`, `radio`; default dropdown), `options`: `[{value, label, description, disabled}]` | `value` is required on each option; options without it are ignored. `label` defaults to `value` |
+| `date` | `key` (required), `label` | Opens the date picker. Stores `yyyy-MM-dd` |
+| `time` | `key` (required), `label` | Opens the time picker. Stores `HH:mm` |
+| `button` | `label`, `icon`, `style` (default filled; `tonal`, `outlined`, `text`), `action` and/or `actions` | Without actions, the button is disabled |
+| `list` | `items`: `[{title, subtitle, trailing, icon, action / actions}]` | Tapping an item runs its actions. `trailing` replaces the arrow |
+| `details` | `items`: `[{label, value}]` | Label/value pairs |
+| `slider` | `key` (required), `label`, `min` (0), `max` (100), `step`, `unit` | Slider with the value and `unit` attached to the number (no space). Without `step` it is continuous; with `step` it shows tick marks, and if `step` gives more than 1000 divisions it is continuous. If `max` ≤ `min`, `max` becomes `min` + 1. Stores an integer if `min` and `step` (or `min` and `max`, without `step`) are integers; otherwise a decimal with 2 places. Without a value it starts at `min` |
+| `checkbox` | `key` (required), `label`, `description` | Checkbox with an optional description. Stores a boolean |
+| `multiselect` | `key` (required), `label`, `options`: `[{value, label, disabled}]` | Multiple-selection chips. Stores the list of `value`s in the order of `options`; values not in `options` are kept at the end. Options without `value` are ignored. `label` defaults to `value` |
+| `stepper` | `key` (required), `label`, `min`, `max`, `step` (1) | − and + buttons with the value between them. Without `min` or `max`, there is no limit on that side. The button is disabled at the limit. Stores an integer if the step and the value are integers; otherwise a decimal with 2 places. Without a value it starts at `min` (or 0) |
+| `progress` | `value`, `max`, `label` | Progress bar with a percentage. Without `max` it is 100 if `value` is greater than 1, and 1 otherwise. Clamped between 0 % and 100 % |
+| `metric` | `label`, `value`, `unit`, `icon`, `tone`, `caption` | Indicator card: label, large value, unit and optional footer. `tone` `success` (green), `warning` (amber) or `error` colors the value; any other value uses the normal color |
+| `grid` | `columns` (2; clamped to 1–4), `components` | Rows of equal columns separated by 12 px. Children with `visible` false are removed before laying out, so the rest is reflowed. Each child is drawn like any other component |
+| `table` | `columns` (headers), `rows` (lists of cells) | Read-only table with horizontal scrolling. Short rows are padded with empty cells, long rows are cut to the number of headers, and rows that are not lists are skipped. Without `columns` nothing is shown |
 
-En los componentes nuevos, `min`, `max`, `step`, `value` y `columns` admiten plantillas; se leen como número después de resolverlas. Los campos de texto también admiten plantillas.
+In the newer components, `min`, `max`, `step`, `value` and `columns` accept templates; they are read as numbers after resolution. Text fields also accept templates.
 
-Un `type` desconocido se muestra como "Componente no soportado: <type>". No rompe la pantalla.
+An unknown `type` is shown as "Unsupported component: <type>". It does not break the screen.
 
-Ejemplo de `select` con estilo chips y `visible`:
+Example of a `select` in chips style with `visible`:
 
 ```json
 {
   "type": "select",
-  "key": "dia",
-  "label": "Día",
+  "key": "day",
+  "label": "Day",
   "style": "chips",
   "options": [
-    {"value": "lun", "label": "Lunes"},
-    {"value": "mar", "label": "Martes", "disabled": true, "description": "Cerrado"}
+    {"value": "mon", "label": "Monday"},
+    {"value": "tue", "label": "Tuesday", "disabled": true, "description": "Closed"}
   ],
-  "visible": "{{modo}}"
+  "visible": "{{mode}}"
 }
 ```
 
 ---
 
-## 7. Acciones
+## 7. Actions
 
-Una acción es un objeto con `type`, sus parámetros y, opcionalmente, `confirm`:
+An action is an object with a `type`, its parameters and, optionally, `confirm`:
 
 ```json
-{"type": "set_alarm", "hour": 7, "minute": 30, "label": "Gym", "confirm": "¿Poner alarma a las 7:30?"}
+{"type": "set_alarm", "hour": 7, "minute": 30, "label": "Gym", "confirm": "Set an alarm for 7:30?"}
 ```
 
-**Dónde aparecen**: en `action` / `actions` de `button` y de los elementos de `list`; en la clave `actions` de una respuesta de submit; en `actions` de un push; y en la respuesta de un `report` ([§14.4](#144-acciones-de-automatización)).
+**Where they appear**: in `action` / `actions` of `button` and of `list` items; in the `actions` key of a submit response; in `actions` of a push; and in the response of a `report` ([§14.4](#144-automation-actions)).
 
-**Ejecución**
-- Los parámetros se resuelven con plantillas (regla del valor crudo) justo antes de ejecutar.
-- Se ejecutan en orden. La lista se detiene en el primer error o si el usuario cancela una confirmación.
-- Los errores se muestran en un aviso.
-- Un `type` desconocido produce un error de "acción no soportada" y detiene la lista.
+**Execution**
+- Parameters are resolved with templates (raw value rule) right before running.
+- They run in order. The list stops at the first error or if the user cancels a confirmation.
+- Errors are shown in a notice.
+- An unknown `type` produces an error saying the action is not supported, and the list stops.
 
 **`confirm`**
-- Texto: `"confirm": "¿Seguro?"`.
-- Objeto: `{"title", "message", "confirmLabel"}`. Las tres son plantillas.
-- Sin `message` no hay confirmación, aunque exista el objeto.
+- Text: `"confirm": "Are you sure?"`.
+- Object: `{"title", "message", "confirmLabel"}`. All three are templates.
+- Without `message` there is no confirmation, even if the object exists.
 
-**Tipos**
+**Types**
 
-| `type` | Parámetros | Necesita pantalla de app | Efecto |
+| `type` | Parameters | Needs an open app screen | Effect |
 |---|---|---|---|
-| `submit` | `path` o `url` (obligatorio), `method` (`GET`, `POST`, `PUT`, `PATCH`, `DELETE`; por defecto `POST`), `body` (objeto), `keys` (lista de claves del estado), `loading` (texto del overlay) | Sí | Envía datos y aplica la respuesta ([§8](#8-respuesta-de-submit)) |
-| `navigate` | `screen` (id) | Sí | Abre una pantalla. Si ya está en la pila, vuelve a ella |
-| `back` | — | Sí | Vuelve atrás. En la primera pantalla sale de la app |
-| `reload` | — | Sí | Vuelve a pedir la spec. Reinicia el estado y la pila |
-| `set_state` | `values` (o `state`, objeto) | Sí | Mezcla valores en el estado |
-| `open_app` | `app` (id de la app) | No | Abre otra app del catálogo |
-| `toast` | `message` | No | Aviso breve |
-| `dialog` | `title` (opcional), `message` | No | Diálogo con Aceptar |
-| `notify` | `title` (por defecto el nombre de la app), `body` | No | Notificación local |
-| `set_alarm` | `hour` y `minute`, o `time` (`"HH:mm"`); `label`; `days` (1 = domingo … 7 = sábado); `vibrate` (booleano); `skipUi` (por defecto `true`) | No | Crea una alarma en la app Reloj. `hour` 0–23, `minute` 0–59 |
-| `set_timer` | `seconds`, o `minutes`; `label`; `skipUi` (por defecto `true`) | No | Temporizador de 1 s a 24 h |
-| `calendar_event` | `title` y `start` (obligatorios, ISO 8601); `end`; `location`; `description`; `allDay` (booleano) | No | Abre el formulario de evento del calendario prellenado. `end` por defecto es `start` + 1 h |
-| `open_url` | `url` | No | Abre el enlace. Esquemas permitidos: `https`, `http`, `mailto`, `tel`, `geo` |
-| `copy` | `text` | No | Copia al portapapeles |
-| `share` | `text` (obligatorio), `subject` | No | Abre el selector de compartir de Android con el texto |
-| `dial` | `number` (obligatorio) | No | Abre el marcador con el número. No llama |
-| `sms` | `number` (obligatorio), `body` | No | Abre la app de mensajes con el destinatario y el texto (`body` solo si no está vacío) |
-| `email` | `to` (obligatorio), `subject`, `body` | No | Abre un correo nuevo. Los espacios se codifican como `%20` |
-| `maps` | `query`, o `lat` y `lng` (número o texto numérico), `label`, `navigate` (booleano, por defecto `false`) | No | Abre Mapas en un lugar, o inicia la navegación con `navigate: true`. Si hay `query`, las coordenadas se ignoran; `label` solo se usa con coordenadas. Sin `query` ni coordenadas, o con lat/lng fuera de −90…90 y −180…180, da error |
-| `vibrate` | `style`: `light`, `medium`, `heavy` o `vibrate` (por defecto) | No | Vibración háptica. Otro valor da error |
-| `show_alarms` | — | No | Abre la lista de alarmas del reloj |
-| `open_settings` | `panel` (obligatorio; no distingue mayúsculas) | No | Abre un ajuste del sistema: `wifi`, `bluetooth`, `location`, `display`, `sound`, `battery`, `date`, `notifications` (de esta app) o `app` (información de esta app). Otro panel da error |
-| `launch_app` | `package` (obligatorio, p. ej. `com.whatsapp`) | No | Abre una app por su nombre de paquete. Si el formato no es válido (al menos dos segmentos separados por puntos, cada uno empezando por letra), da error |
-| `read_clipboard` | `key` (obligatorio) | Sí | Copia el texto del portapapeles a `state[key]` (vacío si no hay texto) |
-| `schedule_alarm` | `id` (por defecto `default`), `at` (obligatorio, ISO 8601), `label`, `body` | No | Programa una alarma propia de la app que suena aunque la app esté cerrada. Con el mismo `id`, reemplaza la anterior. Automática ([§14.4](#144-acciones-de-automatización)) |
-| `cancel_alarm` | `id` (por defecto `default`) | No | Cancela la alarma propia de esa app con ese `id`. Automática |
-| `report` | `path` (obligatorio), `include` (por defecto `["location"]`), `data` (objeto) | No | Envía datos del móvil por `POST` a `path` y ejecuta las `actions` de la respuesta. Automática ([§14.4](#144-acciones-de-automatización)) |
-| `request_permission` | `permission` (obligatorio): `location`, `location_always` o `notifications` | No | Pide un permiso del sistema. No es automática |
+| `submit` | `path` or `url` (required), `method` (`GET`, `POST`, `PUT`, `PATCH`, `DELETE`; default `POST`), `body` (object), `keys` (list of state keys), `loading` (overlay text) | Yes | Sends data and applies the response ([§8](#8-submit-response)) |
+| `navigate` | `screen` (id) | Yes | Opens a screen. If it is already on the stack, goes back to it |
+| `back` | — | Yes | Goes back. On the first screen, it closes the app |
+| `reload` | — | Yes | Requests the spec again. Resets the state and the stack |
+| `set_state` | `values` (or `state`, object) | Yes | Merges values into the state |
+| `open_app` | `app` (app id) | No | Opens another app from the catalog |
+| `toast` | `message` | No | Brief notice |
+| `dialog` | `title` (optional), `message` | No | Dialog with an OK button |
+| `notify` | `title` (default is the app name), `body` | No | Local notification |
+| `set_alarm` | `hour` and `minute`, or `time` (`"HH:mm"`); `label`; `days` (1 = Sunday … 7 = Saturday); `vibrate` (boolean); `skipUi` (default `true`) | No | Creates an alarm in the Clock app. `hour` 0–23, `minute` 0–59 |
+| `set_timer` | `seconds`, or `minutes`; `label`; `skipUi` (default `true`) | No | Timer from 1 s to 24 h |
+| `calendar_event` | `title` and `start` (required, ISO 8601); `end`; `location`; `description`; `allDay` (boolean) | No | Opens the calendar event form, pre-filled. `end` defaults to `start` + 1 h |
+| `open_url` | `url` | No | Opens the link. Allowed schemes: `https`, `http`, `mailto`, `tel`, `geo` |
+| `copy` | `text` | No | Copies to the clipboard |
+| `share` | `text` (required), `subject` | No | Opens the Android share sheet with the text |
+| `dial` | `number` (required) | No | Opens the dialer with the number. It does not call |
+| `sms` | `number` (required), `body` | No | Opens the messaging app with the recipient and the text (`body` only if it is not empty) |
+| `email` | `to` (required), `subject`, `body` | No | Opens a new email. Spaces are encoded as `%20` |
+| `maps` | `query`, or `lat` and `lng` (number or numeric text), `label`, `navigate` (boolean, default `false`) | No | Opens Maps at a place, or starts navigation with `navigate: true`. If there is a `query`, the coordinates are ignored; `label` is only used with coordinates. Without `query` or coordinates, or with lat/lng outside −90…90 and −180…180, it fails with an error |
+| `vibrate` | `style`: `light`, `medium`, `heavy` or `vibrate` (default) | No | Haptic vibration. Any other value is an error |
+| `show_alarms` | — | No | Opens the list of alarms in the Clock app |
+| `open_settings` | `panel` (required; not case-sensitive) | No | Opens a system setting: `wifi`, `bluetooth`, `location`, `display`, `sound`, `battery`, `date`, `notifications` (of this app) or `app` (information about this app). Any other panel is an error |
+| `launch_app` | `package` (required, e.g. `com.whatsapp`) | No | Opens an app by its package name. If the format is not valid (at least two segments separated by dots, each starting with a letter), it is an error |
+| `read_clipboard` | `key` (required) | Yes | Copies the clipboard text to `state[key]` (empty if there is no text) |
+| `schedule_alarm` | `id` (default `default`), `at` (required, ISO 8601), `label`, `body` | No | Schedules an alarm of the app itself that rings even when the app is closed. With the same `id`, it replaces the previous one. Automatic ([§14.4](#144-automation-actions)) |
+| `cancel_alarm` | `id` (default `default`) | No | Cancels that app's own alarm with that `id`. Automatic |
+| `report` | `path` (required), `include` (default `["location"]`), `data` (object) | No | Sends phone data by `POST` to `path` and runs the `actions` of the response. Automatic ([§14.4](#144-automation-actions)) |
+| `request_permission` | `permission` (required): `location`, `location_always` or `notifications` | No | Asks for a system permission. Not automatic |
 
-Notas de las acciones de dispositivo:
-- `share`, `dial`, `sms`, `email`, `maps`, `show_alarms`, `open_settings` y `launch_app` abren apps del sistema con un intent: solo funcionan en Android.
-- `dial` y `sms` codifican el número en la URI. `+34 600 123 123` llega como `%2B34%20600%20123%20123`. No se ha probado en todos los marcadores.
-- `launch_app` no necesita `<queries>` en el manifiesto: la app lanza el intent directamente con `startActivity`, al que no le afecta la visibilidad de paquetes de Android 11+. Si la app no está instalada, se muestra un error.
-- `set_alarm` abre la app Reloj y no sirve en automatizaciones. `schedule_alarm` es una alarma propia de la app: ver [§14.6](#146-alarma-del-reloj-y-alarma-propia).
+Notes on device actions:
+- `share`, `dial`, `sms`, `email`, `maps`, `show_alarms`, `open_settings` and `launch_app` open system apps with an intent: they only work on Android.
+- `dial` and `sms` encode the number in the URI. `+34 600 123 123` arrives as `%2B34%20600%20123%20123`. It has not been tested on every dialer.
+- `launch_app` does not need `<queries>` in the manifest: the app launches the intent directly with `startActivity`, which is not affected by Android 11+ package visibility. If the app is not installed, an error is shown.
+- `set_alarm` opens the Clock app and does not work in automations. `schedule_alarm` is the app's own alarm: see [§14.6](#146-clock-alarm-and-app-alarm).
 
-Ejemplo de respuesta con dos acciones:
+Example response with two actions:
 
 ```json
 {
   "actions": [
     {"type": "set_alarm", "time": "06:30", "label": "Gym"},
-    {"type": "toast", "message": "Alarma puesta"}
+    {"type": "toast", "message": "Alarm set"}
   ]
 }
 ```
 
 ---
 
-## 8. Respuesta de submit
+## 8. Submit response
 
-**Petición**
-- El método es el de la acción (`method`, `POST` por defecto).
-- Con `POST`, `PUT`, `PATCH` o `DELETE`, el contenido va como JSON en el cuerpo.
-- Con `GET`, el contenido va en la query string. Los valores se convierten a texto; `null` pasa a cadena vacía.
-- Contenido, en este orden de prioridad:
-  1. `body`, si la acción lo tiene (objeto).
-  2. `keys`, solo esas claves del estado.
-  3. Todo el estado, salvo las claves que empiezan por `_`.
-- La cabecera `Authorization: Bearer <JWT>` la añade la app.
-- Timeout de 150 s en la app. Un proxy con un límite de tiempo menor corta antes (ver Recomendaciones más abajo). Mientras espera, aparece un overlay con el texto `loading` y los controles quedan deshabilitados. No se puede salir con el gesto atrás.
+**Request**
+- The method is the action's (`method`, `POST` by default).
+- With `POST`, `PUT`, `PATCH` or `DELETE`, the content is sent as JSON in the body.
+- With `GET`, the content goes in the query string. Values are converted to text; `null` becomes an empty string.
+- Content, in this priority order:
+  1. `body`, if the action has it (object).
+  2. `keys`, only those state keys.
+  3. The whole state, except the keys that start with `_`.
+- The `Authorization: Bearer <JWT>` header is added by the app.
+- The app's timeout is 150 s. A proxy with a shorter time limit cuts the request off earlier (see Recommendations below). While waiting, an overlay with the `loading` text appears and the controls are disabled. The back gesture does not leave it.
 
-**Respuesta**: un objeto JSON con estos campos, todos opcionales. La app los aplica en este orden:
+**Response**: a JSON object with these fields, all optional. The app applies them in this order:
 
-| Orden | Campo | Efecto |
+| Order | Field | Effect |
 |---|---|---|
-| 1 | `spec` | Reemplaza la spec completa (schema 1). El estado vuelve al `state` del nuevo spec y la pila a `start` |
-| 2 | `state` | Mezcla valores en el estado (sobrescribe claves) |
-| 3 | `screen` | Navega a esa pantalla (id) |
-| 4 | `message` | Muestra un aviso |
-| 5 | `actions` | Ejecuta las acciones ([§7](#7-acciones)). Acepta una lista o un solo objeto |
+| 1 | `spec` | Replaces the whole spec (schema 1). The state goes back to the new spec's `state` and the stack to `start` |
+| 2 | `state` | Merges values into the state (overwrites keys) |
+| 3 | `screen` | Navigates to that screen (id) |
+| 4 | `message` | Shows a notice |
+| 5 | `actions` | Runs the actions ([§7](#7-actions)). Accepts a list or a single object |
 
-- Una respuesta 2xx vacía no hace nada.
-- Una respuesta 2xx que no es JSON produce `bad_response`.
-- Una respuesta 2xx que es una lista JSON se ignora.
+- An empty 2xx response does nothing.
+- A 2xx response that is not JSON produces `bad_response`.
+- A 2xx response that is a JSON list is ignored.
 
-**Errores**: ver [§3.6](#36-formato-de-error). Un 404 significa que el webhook no existe o que el workflow no está publicado.
+**Errors**: see [§3.6](#36-error-format). A 404 means the webhook does not exist or the workflow is not published.
 
-**Recomendaciones para los flows**
-- Si pones un proxy como Cloudflare delante de n8n, sustituye el cuerpo de las respuestas 502/504 y corta las peticiones a los 100 s (error 524): responde con 4xx o 424 y mantén cada petición por debajo de ese límite.
-- Si una dependencia falla, usa 424 con `error.code` y `error.message`.
-- Responde siempre con JSON.
+**Recommendations for workflows**
+- If you put a proxy such as Cloudflare in front of n8n, it replaces the body of 502/504 responses and cuts requests off at 100 s (error 524): respond with 4xx or 424 and keep each request below that limit.
+- If a dependency fails, use 424 with `error.code` and `error.message`.
+- Always respond with JSON.
 
-Ejemplo de respuesta completa:
+Full response example:
 
 ```json
 {
-  "message": "Reserva confirmada",
-  "state": {"reservada": true},
-  "screen": "resumen",
+  "message": "Booking confirmed",
+  "state": {"booked": true},
+  "screen": "summary",
   "actions": [
     {"type": "set_alarm", "time": "06:30", "label": "Gym"}
   ]
@@ -545,25 +545,25 @@ Ejemplo de respuesta completa:
 
 ---
 
-## 9. Push n8n → móvil
+## 9. Push n8n → phone
 
-**Quién envía**: el sub-workflow "n8n Connect · Enviar al móvil" (plantilla [n8n/workflows/send-to-phone.json](../n8n/workflows/send-to-phone.json)), llamado desde otro flow con **Execute Sub-workflow**.
+**Who sends it**: the "n8n Connect · Send to phone" sub-workflow (template [n8n/workflows/send-to-phone.json](../n8n/workflows/send-to-phone.json)), called from another workflow with **Execute Sub-workflow**.
 
-Entradas:
+Inputs:
 
-| Campo | Descripción |
+| Field | Description |
 |---|---|
-| `email` | Usuario destino. Se envía a todos sus dispositivos con `fcm_token` |
-| `title` | Título de la notificación |
-| `body` | Cuerpo |
-| `actions` | Array de acciones ([§7](#7-acciones)). Vacío si solo es un aviso |
-| `app` | Id de app asociada (opcional). Al tocar la notificación sin acciones, abre esa app |
+| `email` | Target user. It is sent to all their devices that have an `fcm_token` |
+| `title` | Notification title |
+| `body` | Body |
+| `actions` | Array of actions ([§7](#7-actions)). Empty if it is only a notice |
+| `app` | Associated app id (optional). Tapping the notification without actions opens that app |
 
-Salida: `{"sent": n, "failed": n, "unregistered": ["device_id", …]}`, o `{"sent": 0, "failed": 0, "reason": "no_devices"}` si el usuario no tiene dispositivos con token. `unregistered` lista los `device_id` cuyo token FCM ya no es válido (FCM responde 404 o `UNREGISTERED`). La plantilla solo informa: no borra esas filas.
+Output: `{"sent": n, "failed": n, "unregistered": ["device_id", …]}`, or `{"sent": 0, "failed": 0, "reason": "no_devices"}` if the user has no devices with a token. `unregistered` lists the `device_id`s whose FCM token is no longer valid (FCM responds 404 or `UNREGISTERED`). The template only reports them: it does not delete those rows.
 
-Envío: mensaje FCM v1 de **datos**, prioridad alta, `ttl` 3600 s.
+Delivery: FCM v1 **data** message, high priority, `ttl` 3600 s.
 
-**Formato del mensaje** (datos, todos son cadenas):
+**Message format** (data; all values are strings):
 
 ```json
 {
@@ -573,183 +573,183 @@ Envío: mensaje FCM v1 de **datos**, prioridad alta, `ttl` 3600 s.
   "body": "07:30",
   "actions": "[{\"type\":\"set_alarm\",\"hour\":7,\"minute\":30,\"label\":\"Gym\"}]",
   "app": "tools",
-  "to": "usuario@ejemplo.com"
+  "to": "user@example.com"
 }
 ```
 
-- `nc` debe ser `"1"`. Sin ese campo, la app no lo trata como comando de n8n Connect.
-- `actions` llega como JSON en texto. La app también acepta una lista JSON directamente.
-- `id` evita duplicados: si llega dos veces el mismo `id` en la misma sesión de la app, la segunda se ignora.
-- `to` es el email en minúsculas del destinatario (el `email` de entrada del sub-workflow). Si no coincide con la cuenta conectada, la app descarta el push, tanto en primer plano como en segundo plano ([§14.2](#142-qué-puede-ejecutarse-sin-preguntar)). Sin `to`, no hay esa comprobación.
+- `nc` must be `"1"`. Without that field, the app does not treat the message as an n8n Connect command.
+- `actions` arrives as JSON text. The app also accepts a JSON list directly.
+- `id` avoids duplicates: if the same `id` arrives twice in the same app session, the second one is ignored.
+- `to` is the recipient's email in lowercase (the `email` input of the sub-workflow). If it does not match the connected account, the app discards the push, both in the foreground and in the background ([§14.2](#142-what-can-run-without-asking)). Without `to`, there is no such check.
 
-**Comportamiento en el móvil**
+**Behavior on the phone**
 
-| Estado de la app | Sin `actions` | Con `actions` |
+| App state | Without `actions` | With `actions` |
 |---|---|---|
-| Abierta (primer plano) | Notificación normal | Diálogo "n8n quiere ejecutar acciones" con *Ejecutar* / *Ignorar*. Si el ajuste "Ejecutar acciones de n8n automáticamente" está activo, ejecuta sin preguntar (se muestra un aviso con el `title`). La confirmación de cada acción (`confirm`) se respeta igualmente |
-| En segundo plano o cerrada | Notificación en el canal "n8n". Tocarla abre la app (si hay `app`) | Notificación con el botón **Ejecutar**. Pulsar *Ejecutar* ejecuta las acciones sin diálogo y luego manda la app a segundo plano. Tocar el cuerpo abre el diálogo de confirmación |
+| Open (foreground) | Normal notification | "n8n wants to run actions" dialog with *Run* / *Ignore*. If the "Run n8n actions automatically" setting is on, it runs without asking (a notice with the `title` is shown). The confirmation of each action (`confirm`) is still respected |
+| Background or closed | Notification in the "n8n" channel. Tapping it opens the app (if there is an `app`) | Notification with a **Run** button. Tapping *Run* runs the actions without a dialog and then sends the app to the background. Tapping the body opens the confirmation dialog |
 
-Motivo del botón: Android bloquea abrir actividades (alarma, calendario) desde segundo plano. Por eso las acciones solo se ejecutan cuando el usuario pulsa el botón o abre la app.
+The reason for the button: Android blocks opening activities (alarm, calendar) from the background. That is why actions only run when the user taps the button or opens the app.
 
-Excepción: si la app tiene permiso de automatización y todas sus acciones son automáticas, el push se ejecuta solo, también con la app cerrada, sin diálogo ni botón ([§14](#14-automatizaciones)).
+Exception: if the app has automation permission and all its actions are automatic, the push runs by itself, even with the app closed, with no dialog or button ([§14](#14-automations)).
 
-Mensajes FCM con bloque `notification` (sin `nc`): en segundo plano los muestra el sistema; en primer plano la app los muestra como notificación local.
+FCM messages with a `notification` block (without `nc`): in the background the system shows them; in the foreground the app shows them as a local notification.
 
-Cada push que la app recibe en primer plano o que el usuario abre queda registrado en la bandeja ([§12](#12-bandeja-de-n8n)), y también las automatizaciones ejecutadas con la app cerrada ([§14.3](#143-cómo-se-ejecuta)).
+Each push that the app receives in the foreground or that the user opens is recorded in the inbox ([§12](#12-n8n-inbox)), and so are the automations run with the app closed ([§14.3](#143-how-it-runs)).
 
-**Probar sin n8n**: `tools/send_push.py`, ver [README](../README.md#probar-un-push-con-toolssend_pushpy).
+**Testing without n8n**: `tools/send_push.py`, see the [README](../README.md#testing-a-push-with-toolssend_pushpy).
 
 ---
 
-## 10. Paneles en vivo (refreshSeconds)
+## 10. Live dashboards (refreshSeconds)
 
-Una spec puede pedir que la app la vuelva a leer sola cada cierto tiempo:
+A spec can ask the app to read it again on its own at intervals:
 
 ```json
-{"schema": 1, "title": "Pedidos", "refreshSeconds": 60, "start": "inicio", "state": {"pendientes": 0}, "screens": [{"id": "inicio", "components": [{"type": "metric", "label": "Pendientes", "value": "{{pendientes}}"}]}]}
+{"schema": 1, "title": "Orders", "refreshSeconds": 60, "start": "home", "state": {"pending": 0}, "screens": [{"id": "home", "components": [{"type": "metric", "label": "Pending", "value": "{{pending}}"}]}]}
 ```
 
-- `refreshSeconds`: segundos entre recargas. Acepta número o texto numérico. Valores menores de 10 (`AppSpec.minRefreshSeconds`) o no válidos se ignoran: la spec no se recarga sola.
-- En cada recarga la app vuelve a pedir la spec (`GET {path}`) y:
-  - Sustituye la spec entera por la nueva.
-  - Mezcla el `state` de la spec nueva sobre el estado actual: cada clave que trae la spec se actualiza **solo si el usuario no la ha cambiado** desde la última carga (un formulario a medio rellenar conserva lo escrito); el resto del estado se conserva.
-  - Mantiene la pila de pantallas si todas sus pantallas existen en la spec nueva. Si alguna ya no existe, vuelve a `start`.
-- La recarga se omite si hay un submit en curso, otra carga en curso, la app está en segundo plano o la pantalla está tapada por otra ruta.
-- Un error en una recarga no se muestra: la pantalla se queda como estaba. Si el fallo es de red y hay copia guardada, se muestra la copia ([§11](#11-modo-sin-conexión)).
-- El temporizador empieza de nuevo cada vez que se aplica una spec.
-- La recarga manual (icono de refrescar o arrastrar hacia abajo) no es silenciosa: reinicia el estado y la pila, como antes.
-- La barra superior muestra "Actualizado HH:mm" tras cada carga correcta, también en apps sin `refreshSeconds`.
+- `refreshSeconds`: seconds between reloads. Accepts a number or numeric text. Values less than 10 (`AppSpec.minRefreshSeconds`) or invalid values are ignored: the spec does not reload on its own.
+- On each reload, the app requests the spec again (`GET {path}`) and:
+  - Replaces the whole spec with the new one.
+  - Merges the `state` of the new spec over the current state: each key that the spec includes is updated **only if the user has not changed it** since the last load (a half-filled form keeps what was typed); the rest of the state is kept.
+  - Keeps the screen stack if all its screens exist in the new spec. If any of them no longer exists, it goes back to `start`.
+- The reload is skipped if a submit is in progress, another load is in progress, the app is in the background, or the screen is covered by another route.
+- An error in a reload is not shown: the screen stays as it was. If the failure is a network one and a saved copy exists, the copy is shown ([§11](#11-offline-mode)).
+- The timer starts again each time a spec is applied.
+- A manual reload (refresh icon or pull down) is not silent: it resets the state and the stack, as before.
+- The top bar shows "Updated HH:mm" after each successful load, also in apps without `refreshSeconds`.
 
-> Los valores que vienen del servidor (métricas, horas, contadores) se refrescan solos; los que el usuario ha editado se respetan. Una recarga manual (botón ⟳ o acción `reload`) sí reinicia estado y pantalla.
-
----
-
-## 11. Modo sin conexión
-
-La app guarda una copia de lo que recibe del servidor para mostrarla cuando no hay red.
-
-- **Qué se guarda**: el catálogo (`GET n8n-connect/apps`) y la spec de cada app (`GET {path}`), tal como llegaron (JSON volvido a serializar), con la hora en que se guardaron. No se guardan submits ni sus respuestas.
-- **Dónde**: SharedPreferences, con las claves `nc.cache.apps|{servidor}` y `nc.cache.spec|{servidor}|{id de app}`. Hay una copia por servidor, sin cifrar.
-- **Cuándo se usa**: solo si la petición falla con `network` o `timeout` ([§3.6](#36-formato-de-error)). Otros errores (401, 404, 5xx…) se muestran tal cual. Sin copia, se muestra el error.
-- **Qué ve el usuario**: un aviso "Sin conexión. Mostrando datos guardados (HH:mm)." sobre el catálogo o sobre la app. La hora es `HH:mm` si la copia es de hoy y `dd/MM HH:mm` si no. Una respuesta correcta del servidor quita el aviso.
-- **Qué no funciona sin red**: `submit` nunca usa la copia y falla con `network`. Las acciones que solo usan el móvil (`toast`, `dialog`, `open_url`, alarmas…) sí funcionan.
-- **Borrado**: al desconectar, o cuando el servidor revoca el acceso (`not_allowed`, `account_disabled`, `email_not_verified`, `no_email`), se borran todas las claves `nc.cache.*`. Cambiar de servidor no las borra: cada servidor tiene sus propias claves.
+> Values that come from the server (metrics, times, counters) refresh on their own; values the user has edited are kept. A manual reload (⟳ button or `reload` action) does reset the state and the screen.
 
 ---
 
-## 12. Bandeja de n8n
+## 11. Offline mode
 
-La bandeja guarda los pushes de n8n y el resultado de cada uno. Se abre con el icono de bandeja de la pantalla de apps (ruta `/inbox`).
+The app keeps a copy of what it receives from the server so it can show it when there is no network.
 
-**Qué entra**: cada push con `nc: "1"` ([§9](#9-push-n8n--móvil)) que llega con la app abierta, o que el usuario abre desde una notificación (tocándola o con el botón *Ejecutar*). Un push que llega con la app cerrada o en segundo plano y que el usuario no abre no entra en la bandeja, salvo que se ejecute como automatización ([§14.3](#143-cómo-se-ejecuta)).
+- **What is saved**: the catalog (`GET n8n-connect/apps`) and each app's spec (`GET {path}`), as received (JSON re-serialized), together with the time they were saved. Submits and their responses are not saved.
+- **Where**: SharedPreferences, with the keys `nc.cache.apps|{server}` and `nc.cache.spec|{server}|{app id}`. There is one copy per server, unencrypted.
+- **When it is used**: only if the request fails with `network` or `timeout` ([§3.6](#36-error-format)). Other errors (401, 404, 5xx…) are shown as they are. Without a copy, the error is shown.
+- **What the user sees**: a notice "Offline. Showing data saved at HH:mm." over the catalog or over the app. The time is `HH:mm` if the copy is from today and `dd/MM HH:mm` if it is not. A successful response from the server removes the notice.
+- **What does not work offline**: `submit` never uses the copy and fails with `network`. Actions that only use the phone (`toast`, `dialog`, `open_url`, alarms…) do work.
+- **Deletion**: when disconnecting, or when the server revokes access (`not_allowed`, `account_disabled`, `email_not_verified`, `no_email`), all `nc.cache.*` keys are deleted. Changing the server does not delete them: each server has its own keys.
 
-**Estados**
+---
 
-| Estado | Cuándo |
+## 12. n8n inbox
+
+The inbox stores the n8n pushes and the result of each one. It opens with the inbox icon on the app list screen (route `/inbox`).
+
+**What gets in**: each push with `nc: "1"` ([§9](#9-push-n8n--phone)) that arrives while the app is open, or that the user opens from a notification (by tapping it or with the *Run* button). A push that arrives while the app is closed or in the background, and that the user does not open, does not enter the inbox, unless it runs as an automation ([§14.3](#143-how-it-runs)).
+
+**Statuses**
+
+| Status | When |
 |---|---|
-| Pendiente | En cuanto llega el push, mientras la app decide qué hacer con él |
-| Ejecutado | No traía `actions` (aviso), o todas sus acciones se ejecutaron |
-| Ignorado | El usuario no aceptó el diálogo de confirmación (Cancelar o tocar fuera) |
-| Fallido | Alguna acción falló, o se canceló la confirmación `confirm` de una acción |
+| Pending | As soon as the push arrives, while the app decides what to do with it |
+| Executed | It had no `actions` (it was a notice), or all its actions ran |
+| Ignored | The user did not accept the confirmation dialog (Cancel or tapping outside it) |
+| Failed | An action failed, or the confirmation (`confirm`) of an action was cancelled |
 
-**Ejecutar desde la bandeja**: el botón *Ejecutar* aparece solo si el push tiene `actions`. Ejecuta la lista sin el diálogo general (las acciones con `confirm` siguen pidiendo confirmación) y guarda el resultado: Ejecutado o Fallido. Mientras corre, el botón está desactivado. Las acciones que necesitan una pantalla de app abierta ([§7](#7-acciones)) fallan aquí.
+**Run from the inbox**: the *Run* button appears only if the push has `actions`. It runs the list without the general dialog (actions with `confirm` still ask for confirmation) and saves the result: Executed or Failed. While it runs, the button is disabled. Actions that need an open app screen ([§7](#7-actions)) fail here.
 
-**Qué muestra cada entrada**: icono de estado (su nombre aparece al mantenerlo pulsado), título o "Mensaje de n8n" si está vacío, cuerpo, una línea por cada acción y fecha y hora de recepción.
+**What each entry shows**: a status icon (its name appears when you long-press it), the title or "n8n message" if it is empty, the body, one line per action, and the date and time received.
 
-**Almacenamiento**
-- Clave `nc.push.history`: lista JSON, la más reciente primero, con un máximo de 50 entradas.
-- Un push con el mismo `id` que una entrada existente actualiza su estado y su contenido. Conserva su posición y su fecha de recepción.
-- Los datos corruptos se descartan sin romper la bandeja.
-- El botón *Vaciar bandeja* (con confirmación) borra todas las entradas.
+**Storage**
+- Key `nc.push.history`: JSON list, most recent first, with a maximum of 50 entries.
+- A push with the same `id` as an existing entry updates that entry's status and content. It keeps its position and its received date.
+- Corrupt data is discarded without breaking the inbox.
+- The *Clear inbox* button (with confirmation) deletes all the entries.
 
 ---
 
-## 13. Compartir con n8n
+## 13. Sharing with n8n
 
-Desde cualquier app, el menú Compartir de Android (texto o enlace, `text/plain`) incluye **n8n Connect**.
+From any app, the Android Share menu (text or link, `text/plain`) includes **n8n Connect**.
 
-**En el móvil**
-1. La app recibe el texto y el asunto de la app de origen (`EXTRA_TEXT` y `EXTRA_SUBJECT`).
-2. Si la app ya estaba abierta, lo recoge al momento; si no, lo espera. Hasta que haya sesión con el servidor, el contenido solo vive en memoria: si la app se cierra antes, se pierde.
-3. Se abre la pantalla **Compartir con n8n**, con el asunto (solo si lo hay), el texto seleccionable (altura máxima de 320 px, con desplazamiento), el campo *Nota (opcional)* y el botón *Enviar a n8n*.
-4. Al enviar, el botón muestra un indicador de carga y el campo de nota se bloquea. La petición es:
+**On the phone**
+1. The app receives the text and the subject from the source app (`EXTRA_TEXT` and `EXTRA_SUBJECT`).
+2. If the app was already open, it picks the content up immediately; if not, it waits. Until there is a server session, the content lives only in memory: if the app closes first, it is lost.
+3. The **Share to n8n** screen opens, with the subject (only if there is one), the selectable text (maximum height 320 px, scrollable), the *Note (optional)* field and the *Send to n8n* button.
+4. When you send, the button shows a loading indicator and the note field is locked. The request is:
 
 ```
 POST n8n-connect/share      (JWT)
-{"text": "https://ejemplo.com/articulo", "subject": "Artículo", "note": "Leer el domingo"}
+{"text": "https://example.com/article", "subject": "Article", "note": "Read on Sunday"}
 ```
 
-`subject` va como cadena vacía si no hay asunto. `note` se envía sin espacios al principio ni al final.
+`subject` is sent as an empty string if there is no subject. `note` is sent without leading or trailing spaces.
 
-5. Respuesta: la app muestra `message` (o "Enviado a n8n." si viene vacío), ejecuta `actions` si las hay y cierra la pantalla. Las acciones se ejecutan aunque el usuario haya salido mientras esperaba. Como no hay pantalla de app abierta, las que la necesitan fallan ([§7](#7-acciones)).
-6. Si el envío falla, aparece una tarjeta de error en la pantalla. El texto y la nota se conservan para reintentar.
+5. Response: the app shows `message` (or "Sent to n8n." if it is empty), runs `actions` if there are any, and closes the screen. The actions run even if the user left while waiting. Since no app screen is open, those that need one fail ([§7](#7-actions)).
+6. If sending fails, an error card appears on the screen. The text and the note are kept so you can retry.
 
-Si llega otro contenido con la pantalla ya abierta, se abre otra pantalla encima.
+If other content arrives while the screen is already open, another screen opens on top of it.
 
-**En n8n** (workflow "n8n Connect · Compartir")
-- Nodo Webhook POST `n8n-connect/share`, con *Authentication = "JWT Auth"*, como el resto de webhooks ([§2](#2-seguridad)).
-- Recibe `{text, subject, note}`.
-- Guarda una fila en la tabla `nc_inbox` ([§4](#4-tablas)).
-- Responde con JSON `{"message": "…"}`. Puede añadir `actions` ([§7](#7-acciones)), que la app ejecuta.
+**In n8n** (workflow "n8n Connect · Share")
+- POST Webhook node `n8n-connect/share`, with *Authentication = "JWT Auth"*, like the other webhooks ([§2](#2-security)).
+- Receives `{text, subject, note}`.
+- Saves a row in the `nc_inbox` table ([§4](#4-tables)).
+- Responds with JSON `{"message": "…"}`. It can add `actions` ([§7](#7-actions)), which the app runs.
 
 ---
 
-## 14. Automatizaciones
+## 14. Automations
 
-Una automatización es un push de n8n cuyas acciones se ejecutan solas en el móvil: sin diálogo y, con la app cerrada, sin notificación si todo va bien. Para que pase, el usuario tiene que permitirlo en cada app y el push tiene que cumplir una regla fija.
+An automation is an n8n push whose actions run by themselves on the phone: with no dialog and, with the app closed, with no notification if everything goes well. For that to happen, the user must allow it for each app, and the push must meet a fixed rule.
 
-### 14.1 Permiso por app
+### 14.1 Per-app permission
 
-- Lo concede el usuario en la pantalla de la app, con el componente `automation` ([§14.7](#147-componentes-automation-y-permission)). En **Configuración → Automatizaciones** aparecen las apps permitidas del servidor conectado; un interruptor quita cada permiso.
-- Se guarda en SharedPreferences, sin cifrar, con la clave `nc.auto.{servidor}|{appId}`. Es por servidor: cambiar de servidor no borra el permiso del anterior, pero no se aplica al nuevo.
-- Se borran **todos** los permisos y el token FCM del móvil (`push.deleteToken`) cuando se cierra la sesión con el servidor (`onSessionClosed` en `lib/main.dart`): al desconectar (también desde Configuración, al cerrar sesión o al borrar la cuenta), al cambiar de cuenta de Firebase y cuando el servidor revoca el acceso. Desconectar y cambiar de cuenta llaman además a `logout`; la revocación no.
+- The user grants it on the app's screen, with the `automation` component ([§14.7](#147-automation-and-permission-components)). In **Settings → Automations**, the allowed apps of the connected server are listed; a switch removes each permission.
+- It is stored in SharedPreferences, unencrypted, with the key `nc.auto.{server}|{appId}`. It is per server: changing the server does not delete the permission of the previous server, but it does not apply to the new one.
+- **All** permissions and the phone's FCM token (`push.deleteToken`) are deleted when the server session closes (`onSessionClosed` in `lib/main.dart`): when disconnecting (also from Settings, when signing out or deleting the account), when switching Firebase accounts, and when the server revokes access. Disconnecting and switching accounts also call `logout`; revocation does not.
 
-### 14.2 Qué puede ejecutarse sin preguntar
+### 14.2 What can run without asking
 
-Las acciones automáticas (`automaticActionTypes` en `lib/features/actions/action_spec.dart`) son `schedule_alarm`, `cancel_alarm`, `report` y `notify`.
+The automatic actions (`automaticActionTypes` in `lib/features/actions/action_spec.dart`) are `schedule_alarm`, `cancel_alarm`, `report` and `notify`.
 
-Un push se decide con `decide()` en `lib/features/automation/background_automation.dart`, en este orden:
+A push is decided by `decide()` in `lib/features/automation/background_automation.dart`, in this order:
 
-| Resultado | Cuándo |
+| Result | When |
 |---|---|
-| Descartar (`drop`) | No hay sesión con el servidor. O el push trae `to` y no coincide con el email de la sesión (sin distinguir mayúsculas) |
-| Preguntar (`ask`) | Falta `app`, no hay acciones, alguna acción no es automática o tiene `confirm`, o la app no tiene permiso |
-| Ejecutar (`run`) | Hay `app`, todas las acciones son automáticas sin `confirm` y la app tiene permiso |
+| Discard (`drop`) | There is no server session. Or the push includes `to` and it does not match the session's email (case-insensitive) |
+| Ask (`ask`) | `app` is missing, there are no actions, some action is not automatic or has `confirm`, or the app does not have permission |
+| Run (`run`) | There is an `app`, all the actions are automatic and have no `confirm`, and the app has permission |
 
-- Sin `to` no hay comprobación de destinatario. La plantilla `send-to-phone` siempre lo envía ([§9](#9-push-n8n--móvil)).
-- Con `automaticOnly` el ejecutor rechaza cualquier acción fuera de la lista. Lo mismo vale para las acciones de la respuesta de un `report`: si una no es automática, el `report` falla entero.
+- Without `to` there is no recipient check. The `send-to-phone` template always sends it ([§9](#9-push-n8n--phone)).
+- With `automaticOnly`, the executor rejects any action outside the list. The same applies to the actions in a `report` response: if one of them is not automatic, the whole `report` fails.
 
-### 14.3 Cómo se ejecuta
+### 14.3 How it runs
 
-| Caso | `run` | `drop` | `ask` |
+| Case | `run` | `drop` | `ask` |
 |---|---|---|---|
-| App abierta | Ejecuta sin diálogo, aunque el ajuste "Ejecutar acciones de n8n automáticamente" esté apagado. Si falla, muestra el error en un aviso. En la bandeja pasa de Pendiente a Ejecutado o Fallido | Se ignora. Queda en la bandeja como Pendiente | Diálogo normal ([§9](#9-push-n8n--móvil)) |
-| App cerrada o en segundo plano | Se ejecuta en el isolate de FCM (`firebaseMessagingBackgroundHandler`), sin notificación si va bien. Se guarda en la bandeja como Ejecutado o Fallido. Si falla, muestra una notificación de error con el título del push | Se ignora sin notificación y no entra en la bandeja | Notificación normal con el botón *Ejecutar* |
+| App open | Runs without a dialog, even if the "Run n8n actions automatically" setting is off. If it fails, the error is shown in a notice. In the inbox, it changes from Pending to Executed or Failed | Ignored. It stays in the inbox as Pending | Normal dialog ([§9](#9-push-n8n--phone)) |
+| App closed or in the background | Runs in the FCM isolate (`firebaseMessagingBackgroundHandler`), with no notification if it succeeds. Saved to the inbox as Executed or Failed. If it fails, an error notification with the push's title is shown | Ignored with no notification, and does not enter the inbox | Normal notification with the *Run* button |
 
-- Si la automatización lanza una excepción antes de ejecutar, el push se muestra como notificación normal ([§9](#9-push-n8n--móvil)).
-- Las entradas de segundo plano se guardan aparte y pasan a la bandeja al abrir la app ([§12](#12-bandeja-de-n8n)).
+- If the automation throws an exception before running, the push is shown as a normal notification ([§9](#9-push-n8n--phone)).
+- Background entries are saved separately and move into the inbox when the app opens ([§12](#12-n8n-inbox)).
 
-### 14.4 Acciones de automatización
+### 14.4 Automation actions
 
 **`schedule_alarm`** `{id, at, label, body}`
-- `at`: ISO 8601. Con desfase (`2026-11-03T06:45:00+01:00`) es el instante exacto; sin desfase se toma como hora local del móvil. Debe estar en el futuro; si no, la acción falla.
-- `id` (por defecto `default`) identifica la alarma dentro de la app. Programar otra con el mismo `id` en la misma app la reemplaza.
-- `label` (por defecto `n8n`) es el título y `body` (por defecto la hora `HH:mm`) el texto.
-- Es una alarma propia (plugin `alarm`): suena con la app cerrada, con el tono por defecto del móvil, vibra, abre la pantalla completa y sobrevive a reinicios. En primer plano muestra un aviso con la hora.
+- `at`: ISO 8601. With an offset (`2026-11-03T06:45:00+01:00`) it is the exact instant; without an offset it is taken as the phone's local time. It must be in the future; otherwise the action fails.
+- `id` (default `default`) identifies the alarm within the app. Scheduling another alarm with the same `id` in the same app replaces it.
+- `label` (default `n8n`) is the title and `body` (default the time `HH:mm`) is the text.
+- It is the app's own alarm (`alarm` plugin): it rings with the app closed, with the phone's default tone, vibrates, opens a full-screen screen and survives reboots. In the foreground it shows a notice with the time.
 
-**`cancel_alarm`** `{id}`: cancela la alarma de esa app con ese `id`.
+**`cancel_alarm`** `{id}`: cancels the app's alarm with that `id`.
 
 **`report`** `{path, include, data}`
-- Hace `POST {path}` con el JWT (renueva la sesión si hace falta; timeout 60 s). Cuerpo: `timezoneOffsetMinutes`, `timezone`, `collectedAt`, `location` (según `include`), `app` (id de la app del push) y `data` (objeto tal cual).
-- `include` por defecto es `["location"]`; vacío o ausente equivale a ese valor. Los nombres que no reconoce se ignoran; la zona horaria va siempre ([§14.5](#145-datos-del-móvil)).
-- Si la respuesta trae `actions`, las ejecuta a continuación. En primer plano, las que tengan `confirm` piden confirmación. En segundo plano solo se ejecutan las automáticas ([§14.2](#142-qué-puede-ejecutarse-sin-preguntar)).
-- Sin red falla. En segundo plano la ubicación requiere el permiso *siempre* (`location_always`); sin él, Android no da la posición.
+- Makes `POST {path}` with the JWT (renews the session if needed; 60 s timeout). Body: `timezoneOffsetMinutes`, `timezone`, `collectedAt`, `location` (according to `include`), `app` (the push's app id) and `data` (the object, as is).
+- `include` defaults to `["location"]`; empty or absent means that same value. Names it does not recognize are ignored; the time zone is always sent ([§14.5](#145-phone-data)).
+- If the response has `actions`, they run next. In the foreground, those with `confirm` ask for confirmation. In the background, only the automatic ones run ([§14.2](#142-what-can-run-without-asking)).
+- Without network it fails. In the background, location requires the *always* permission (`location_always`); without it, Android does not provide the position.
 
-**`request_permission`** `{permission}`: `location`, `location_always` o `notifications`. Muestra el diálogo del sistema. Para `location_always`, si la ubicación está solo "mientras se usa", abre los ajustes de la app. Si los servicios de ubicación están apagados, abre sus ajustes. No es automática: un push que la incluya siempre pregunta.
+**`request_permission`** `{permission}`: `location`, `location_always` or `notifications`. It shows the system dialog. For `location_always`, if location is only allowed "while using the app", it opens the app's settings. If location services are off, it opens their settings. It is not automatic: a push that includes it always asks.
 
-### 14.5 Datos del móvil
+### 14.5 Phone data
 
-`DeviceContext.collect(include)` (`lib/features/device_context/device_context.dart`) produce, por ejemplo:
+`DeviceContext.collect(include)` (`lib/features/device_context/device_context.dart`) produces, for example:
 
 ```json
 {
@@ -760,64 +760,64 @@ Un push se decide con `decide()` en `lib/features/automation/background_automati
 }
 ```
 
-- `location` es una posición (`lat`, `lng`, `accuracy`, `timestamp`) o `{"error": "disabled" | "permission_denied" | "timeout"}`. `disabled`: los servicios de ubicación están apagados. `timeout`: no hay posición reciente en 15 s ni última posición conocida. `permission_denied`: falta el permiso o hubo un fallo.
-- Un `submit` con `include: ["location"]` añade el mismo contenido como `_device` en el cuerpo ([§7](#7-acciones)). Sin `include` no se envía nada de esto.
+- `location` is a position (`lat`, `lng`, `accuracy`, `timestamp`) or `{"error": "disabled" | "permission_denied" | "timeout"}`. `disabled`: location services are off. `timeout`: there is no recent position within 15 s and no last known position. `permission_denied`: the permission is missing or there was a failure.
+- A `submit` with `include: ["location"]` adds the same content as `_device` in the body ([§7](#7-actions)). Without `include`, none of this is sent.
 
-### 14.6 Alarma del reloj y alarma propia
+### 14.6 Clock alarm and app alarm
 
 | | `set_alarm` | `schedule_alarm` |
 |---|---|---|
-| Dónde suena | App Reloj del sistema | La propia app (plugin `alarm`) |
-| Con la app cerrada | No: Android bloquea abrir la app Reloj desde segundo plano | Sí |
-| En automatizaciones | No | Sí |
-| Cancelar | Desde la app Reloj | `cancel_alarm` |
-| Dónde se ve | En la app Reloj (`show_alarms`) | Pantalla **Alarmas de n8n** (`/alarms`) |
-| Reinicio del móvil | Lo gestiona el reloj | Sobrevive |
+| Where it rings | The system Clock app | The app itself (`alarm` plugin) |
+| With the app closed | No: Android blocks opening the Clock app from the background | Yes |
+| In automations | No | Yes |
+| Cancel | From the Clock app | `cancel_alarm` |
+| Where it is shown | In the Clock app (`show_alarms`) | **n8n alarms** screen (`/alarms`) |
+| Phone restart | Handled by the clock app | Survives |
 
-- **Alarmas de n8n** (Configuración → Automatizaciones): lista las alarmas propias con hora, fecha, etiqueta y app. Las que ya pasaron aparecen atenuadas con "Ya pasó". Cancelar pide confirmación y cancela esa alarma, igual que `cancel_alarm`.
-- **Pantalla de aviso**: con la app abierta, al sonar una alarma propia se abre a pantalla completa con la hora, la etiqueta y dos botones, **Parar** y **Posponer 5 min** (vuelve a sonar 5 minutos después con la misma etiqueta). Con la app cerrada, el aviso lo da el plugin con una notificación a pantalla completa que tiene el botón *Stop*.
-- **Limitación conocida**: con la app abierta, si la alarma que vuelve a sonar es la misma que acaba de parar o posponer, no se abre la pantalla de aviso (`AlarmEngine.ringing` usa `distinct`, que compara solo con el evento anterior). El sonido lo gestiona el plugin `alarm`.
+- **n8n alarms** (Settings → Automations): lists the app's own alarms with time, date, label and app. Those that have already passed appear dimmed and marked "Passed". Cancelling asks for confirmation and cancels that alarm, the same as `cancel_alarm`.
+- **Alarm screen**: with the app open, when an app alarm rings, it opens full screen with the time, the label and two buttons, **Stop** and **Snooze 5 min** (it rings again 5 minutes later with the same label). With the app closed, the plugin gives the alert with a full-screen notification that has a *Stop* button.
+- **Known limitation**: with the app open, if the alarm that rings again is the same one that was just stopped or snoozed, the alarm screen does not open (`AlarmEngine.ringing` uses `distinct`, which only compares against the previous event). Sound is handled by the `alarm` plugin.
 
-### 14.7 Componentes automation y permission
+### 14.7 automation and permission components
 
-| `type` | Campos | Qué muestra |
+| `type` | Fields | What it shows |
 |---|---|---|
-| `automation` | `label`, `description` | Interruptor para dejar que n8n ejecute acciones de esta app sin preguntar. Guarda el permiso de [§14.1](#141-permiso-por-app). Sin textos, usa "Acciones automáticas" y una descripción por defecto |
-| `permission` | `permission` (`location`, `location_always` o `notifications`), `label`, `description` | Estado del permiso y el botón adecuado (ver abajo). Sin textos, usa los títulos por defecto del permiso |
+| `automation` | `label`, `description` | Switch to let n8n run this app's actions without asking. Stores the permission from [§14.1](#141-per-app-permission). Without texts, it uses "Automatic actions" and a default description |
+| `permission` | `permission` (`location`, `location_always` or `notifications`), `label`, `description` | The permission's status and the right button (see below). Without texts, it uses the permission's default titles |
 
-Estados de `permission`:
-- **Concedido**: check verde con "Concedido".
-- **Denegado**: botón **Conceder**, que pide el permiso.
-- **Denegado para siempre**: botón **Abrir ajustes**. En `notifications` el botón vuelve a pedir el permiso, y Android puede no mostrar nada.
-- **No disponible**: solo el texto, sin botón.
+`permission` states:
+- **Granted**: green check with "Granted".
+- **Denied**: **Grant** button, which asks for the permission.
+- **Permanently denied**: **Open settings** button. For `notifications`, the button asks for the permission again, and Android may show nothing.
+- **Unavailable**: text only, no button.
 
-El estado se vuelve a leer al mostrarse el componente y cada vez que la app vuelve a primer plano.
+The status is read again when the component is shown and each time the app returns to the foreground.
 
-## 15. Ejemplos
+## 15. Examples
 
-### 15.1 Alarma
+### 15.1 Alarm
 
-Es una pantalla de la app Herramientas (flow "n8n Connect · App · Herramientas", pantalla `alarma`): POST `n8n-connect/apps/tools/alarm`.
+It is a screen of the Tools app (workflow "n8n Connect · App · Tools", `alarm` screen): POST `n8n-connect/apps/tools/alarm`.
 
-La app muestra una hora y una etiqueta. Al pulsar el botón envía el estado y el flow responde con una acción `set_alarm`. Forma resumida de la spec (la real está en el flow):
+The app shows a time and a label. When the button is tapped, it sends the state and the workflow responds with a `set_alarm` action. Abbreviated form of the spec (the real one is in the workflow):
 
 ```json
 {
   "schema": 1,
-  "title": "Alarma",
-  "start": "inicio",
-  "state": {"alarma_hora": "07:30", "alarma_etiqueta": "Gym"},
+  "title": "Alarm",
+  "start": "home",
+  "state": {"alarm_time": "07:30", "alarm_label": "Gym"},
   "screens": [
     {
-      "id": "inicio",
+      "id": "home",
       "components": [
-        {"type": "time", "key": "alarma_hora", "label": "Hora"},
-        {"type": "input", "key": "alarma_etiqueta", "label": "Etiqueta"},
+        {"type": "time", "key": "alarm_time", "label": "Time"},
+        {"type": "input", "key": "alarm_label", "label": "Label"},
         {
           "type": "button",
-          "label": "Poner alarma",
+          "label": "Set alarm",
           "icon": "alarm_add",
-          "action": {"type": "submit", "path": "n8n-connect/apps/tools/alarm", "loading": "Programando…"}
+          "action": {"type": "submit", "path": "n8n-connect/apps/tools/alarm", "loading": "Scheduling…"}
         }
       ]
     }
@@ -825,84 +825,84 @@ La app muestra una hora y una etiqueta. Al pulsar el botón envía el estado y e
 }
 ```
 
-Respuesta de `alarm` (la app pone la alarma y muestra un aviso):
+Response of `alarm` (the app sets the alarm and shows a notice):
 
 ```json
 {"actions": [{"type": "set_alarm", "hour": 7, "minute": 30, "label": "Gym"}]}
 ```
 
-La misma alarma sin abrir la app, desde un flow programado, con un push (ver `tools/send_push.py` en el README):
+The same alarm, without opening the app, from a scheduled workflow, sent as a push (see `tools/send_push.py` in the README):
 
 ```bash
-python3 tools/send_push.py --service-account /ruta/cuenta-servicio.json --token TOKEN_FCM \
+python3 tools/send_push.py --service-account /path/to/service-account.json --token FCM_TOKEN \
   --title "Gym" --body "07:30" \
   --actions '[{"type":"set_alarm","hour":7,"minute":30,"label":"Gym"}]' --app tools
 ```
 
-Con ese comando, en primer plano aparece el diálogo de confirmación; en segundo plano aparece la notificación con el botón *Ejecutar*.
+With that command, in the foreground the confirmation dialog appears; in the background, the notification with the *Run* button appears.
 
-### 15.2 Herramientas
+### 15.2 Tools
 
-La plantilla importable está en [n8n/workflows/app-tools.json](../n8n/workflows/app-tools.json) y la puesta en marcha del servidor en [n8n/README.md](../n8n/README.md).
+The importable template is in [n8n/workflows/app-tools.json](../n8n/workflows/app-tools.json), and the server setup is in [n8n/README.md](../n8n/README.md).
 
-Flows: "n8n Connect · App · Herramientas" (path `n8n-connect/apps/tools`). Es la app de demostración de los componentes nuevos y de las acciones de dispositivo. Forma ilustrativa, no copia del flow:
+Workflow: "n8n Connect · App · Tools" (path `n8n-connect/apps/tools`). It is the demo app for the new components and the device actions. Illustrative form, not a copy of the workflow:
 
 ```json
 {
   "schema": 1,
-  "title": "Herramientas",
+  "title": "Tools",
   "refreshSeconds": 30,
-  "state": {"pasos": 3, "volumen": 40, "modo": true},
+  "state": {"steps": 3, "volume": 40, "mode": true},
   "screens": [
     {
-      "id": "inicio",
+      "id": "home",
       "components": [
-        {"type": "slider", "key": "volumen", "label": "Volumen", "min": 0, "max": 100, "step": 5, "unit": "%"},
-        {"type": "stepper", "key": "pasos", "label": "Pasos", "min": 0, "max": 10},
-        {"type": "checkbox", "key": "modo", "label": "Modo compacto"},
+        {"type": "slider", "key": "volume", "label": "Volume", "min": 0, "max": 100, "step": 5, "unit": "%"},
+        {"type": "stepper", "key": "steps", "label": "Steps", "min": 0, "max": 10},
+        {"type": "checkbox", "key": "mode", "label": "Compact mode"},
         {
           "type": "grid",
           "columns": 2,
           "components": [
-            {"type": "metric", "label": "Pasos", "value": "{{pasos}}", "unit": "/ 10", "icon": "bolt", "tone": "success"},
-            {"type": "progress", "label": "Objetivo", "value": "{{pasos}}", "max": 10}
+            {"type": "metric", "label": "Steps", "value": "{{steps}}", "unit": "/ 10", "icon": "bolt", "tone": "success"},
+            {"type": "progress", "label": "Goal", "value": "{{steps}}", "max": 10}
           ]
         },
-        {"type": "table", "columns": ["Acción", "Estado"], "rows": [["Compartir", "{{pasos}} pasos"], ["Mapa", "Madrid"]]},
-        {"type": "button", "label": "Compartir", "icon": "send", "action": {"type": "share", "text": "Llevo {{pasos}} pasos"}},
-        {"type": "button", "label": "Mapa", "icon": "location_on", "style": "outlined", "action": {"type": "maps", "lat": 40.4168, "lng": -3.7038, "label": "Madrid"}},
-        {"type": "button", "label": "Vibrar", "icon": "bolt", "style": "tonal", "action": {"type": "vibrate", "style": "medium"}}
+        {"type": "table", "columns": ["Action", "Status"], "rows": [["Share", "{{steps}} steps"], ["Map", "Madrid"]]},
+        {"type": "button", "label": "Share", "icon": "send", "action": {"type": "share", "text": "I've walked {{steps}} steps"}},
+        {"type": "button", "label": "Map", "icon": "location_on", "style": "outlined", "action": {"type": "maps", "lat": 40.4168, "lng": -3.7038, "label": "Madrid"}},
+        {"type": "button", "label": "Vibrate", "icon": "bolt", "style": "tonal", "action": {"type": "vibrate", "style": "medium"}}
       ]
     }
   ]
 }
 ```
 
-### 15.3 Ejemplo de diseño: despertador según la agenda
+### 15.3 Design example: agenda-based wake-up alarm
 
-No es un flow real, sino un diseño: cada noche calcula la hora de despertar de mañana según la agenda, la ubicación del móvil y el tiempo de viaje.
+This is not a real workflow but a design: every night it calculates tomorrow's wake-up time from the agenda, the phone's location and the travel time.
 
-> No hay plantilla en `n8n/workflows/`. Depende de datos personales (agenda, ubicación y preferencias del usuario) y de credenciales propias. Úsalo como referencia de diseño, no como flow para importar.
+> There is no template in `n8n/workflows/`. It depends on personal data (agenda, location and the user's preferences) and on the user's own credentials. Use it as a design reference, not as a workflow to import.
 
-- **Preferencias por usuario**: una tabla de datos propia con el modo de transporte (`driving` coche, `transit` transporte público, `bicycling` bici o `walking` a pie), los minutos de preparación, los minutos de margen, la hora de respaldo y el calendario.
-- **Cada noche a una hora fija**, n8n manda un push a los móviles de los usuarios que han permitido las automatizaciones de la app ([§14.1](#141-permiso-por-app)). El push lleva una acción que el móvil ejecuta sola:
+- **Per-user preferences**: a custom data table with the travel mode (`driving` car, `transit` public transport, `bicycling` bike or `walking` on foot), the preparation minutes, the margin minutes, the fallback wake-up time and the calendar.
+- **Every night at a fixed time**, n8n sends a push to the phones of the users who have allowed the app's automations ([§14.1](#141-per-app-permission)). The push carries an action that the phone runs by itself:
 
   ```json
   [{"type": "report", "path": "…", "include": ["location"], "data": {}}]
   ```
 
-- **El móvil responde** con su ubicación y su zona horaria ([§14.5](#145-datos-del-móvil)). Si la app está cerrada, la ubicación requiere el permiso *siempre*.
-- **n8n** lee el primer evento de mañana que tenga ubicación en el calendario del usuario. Pide a un servicio de rutas (por ejemplo, Google Maps Distance Matrix) el tiempo de viaje desde la ubicación del móvil, con el modo elegido y con la llegada a la hora de inicio del evento.
-- **Hora de despertar** = inicio del evento − viaje − preparación − margen. n8n responde con:
+- **The phone responds** with its location and time zone ([§14.5](#145-phone-data)). If the app is closed, the location requires the *always* permission.
+- **n8n** reads the first event tomorrow that has a location in the user's calendar. It asks a routing service (for example, Google Maps Distance Matrix) for the travel time from the phone's location, using the chosen mode and arriving at the event's start time.
+- **Wake-up time** = event start − travel − preparation − margin. n8n responds with:
 
   ```json
-  {"actions": [{"type": "schedule_alarm", "id": "wakeup", "at": "2026-11-03T06:45:00+01:00", "label": "Despertador"}]}
+  {"actions": [{"type": "schedule_alarm", "id": "wakeup", "at": "2026-11-03T06:45:00+01:00", "label": "Wake up"}]}
   ```
 
-  Con el mismo `id`, cada noche reemplaza la alarma de la noche anterior.
-- **Botón *Recalcular ahora***: un submit con `include: ["location"]` que repite el cálculo con la ubicación actual.
+  With the same `id`, each night replaces the previous night's alarm.
+- **"Recalculate now" button**: a submit with `include: ["location"]` that repeats the calculation with the current location.
 
-Notas:
-- Sin credencial del servicio de rutas en n8n, el flow usa los minutos de viaje de respaldo.
-- La hora de respaldo del usuario sirve como alternativa cuando no hay un evento con ubicación.
-- Si la hora calculada ya ha pasado, `schedule_alarm` falla ([§14.4](#144-acciones-de-automatización)).
+Notes:
+- Without a routing-service credential in n8n, the workflow uses the fallback travel minutes.
+- The user's fallback wake-up time is used when there is no event with a location.
+- If the calculated time has already passed, `schedule_alarm` fails ([§14.4](#144-automation-actions)).

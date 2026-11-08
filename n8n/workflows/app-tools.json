@@ -1,9 +1,9 @@
 {
-  "name": "n8n Connect · App · Herramientas",
+  "name": "n8n Connect · App · Tools",
   "nodes": [
     {
       "id": "33daa1ec-cc62-454e-ad4c-280a275d967c",
-      "name": "Pantalla",
+      "name": "Screen",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.2,
       "position": [
@@ -26,7 +26,7 @@
     },
     {
       "id": "fe19b6ef-af12-4c56-a8ab-4f48376780cc",
-      "name": "Mis compartidos",
+      "name": "My shared items",
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1.1,
       "position": [
@@ -46,7 +46,7 @@
           "conditions": [
             {
               "keyName": "email",
-              "keyValue": "={{ $(\"Pantalla\").first().json.jwtPayload.email }}"
+              "keyValue": "={{ $(\"Screen\").first().json.jwtPayload.email }}"
             }
           ]
         },
@@ -56,7 +56,7 @@
     },
     {
       "id": "28d00921-569a-4de0-b202-1a699b3611c5",
-      "name": "Construir pantalla",
+      "name": "Build screen",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
@@ -64,12 +64,12 @@
         0
       ],
       "parameters": {
-        "jsCode": "// Demo de componentes (grid, metric, progress, table, slider, stepper, checkbox,\n// multiselect) y acciones del móvil. Se refresca sola cada 30 s (refreshSeconds).\nconst user = $(\"Pantalla\").first().json.jwtPayload ?? {};\nconst shared = $input.all().map((i) => i.json).filter((r) => r.text)\n  .sort((a, b) => String(b.received_at).localeCompare(String(a.received_at)));\nconst short = (s, n) => (s.length > n ? s.slice(0, n - 1) + \"…\" : s);\nconst rows = shared.slice(0, 5).map((r) => [\n  $now.constructor.fromISO(String(r.received_at)).setZone($now.zoneName).toFormat(\"dd/MM HH:mm\"),\n  short(String(r.subject || r.text), 40),\n]);\n\nconst panel = [\n  { type: \"grid\", columns: 2, components: [\n    { type: \"metric\", label: \"Hora del servidor\", value: \"{{hora}}\", icon: \"schedule\" },\n    { type: \"metric\", label: \"Compartidos\", value: \"{{compartidos}}\", icon: \"send\", tone: shared.length ? \"success\" : \"info\", caption: \"desde el móvil\" },\n  ] },\n  { type: \"progress\", label: \"Segundos del minuto\", value: \"{{segundos}}\", max: 60 },\n  { type: \"text\", style: \"subtitle\", text: \"Últimos compartidos\" },\n  rows.length\n    ? { type: \"table\", columns: [\"Fecha\", \"Contenido\"], rows }\n    : { type: \"banner\", tone: \"info\", text: \"Comparte un enlace desde cualquier app con «Compartir → n8n Connect» y aparecerá aquí.\" },\n  { type: \"button\", label: \"Poner alarma\", icon: \"alarm\", action: { type: \"navigate\", screen: \"alarma\" } },\n  { type: \"button\", label: \"Formulario de prueba\", icon: \"edit\", style: \"tonal\", action: { type: \"navigate\", screen: \"form\" } },\n  { type: \"button\", label: \"Acciones del móvil\", icon: \"bolt\", style: \"outlined\", action: { type: \"navigate\", screen: \"acciones\" } },\n];\n\nconst alarma = [\n  { type: \"banner\", tone: \"info\", icon: \"info\", text: \"n8n valida la hora y devuelve la acción set_alarm; la app la crea en el reloj del móvil.\" },\n  { type: \"time\", key: \"alarma_hora\", label: \"Hora\" },\n  { type: \"input\", key: \"alarma_etiqueta\", label: \"Etiqueta\", hint: \"Ej. Gimnasio\" },\n  { type: \"switch\", key: \"alarma_push\", label: \"Enviar por push\", description: \"n8n la manda como notificación a todos tus dispositivos\" },\n  { type: \"button\", label: \"Poner alarma\", icon: \"alarm_add\", action: {\n    type: \"submit\", path: \"n8n-connect/apps/tools/alarm\", keys: [\"alarma_hora\", \"alarma_etiqueta\", \"alarma_push\"], loading: \"Enviando a n8n…\",\n  } },\n];\n\nconst form = [\n  { type: \"slider\", key: \"volumen\", label: \"Volumen\", min: 0, max: 100, step: 5, unit: \"%\" },\n  { type: \"stepper\", key: \"minutos\", label: \"Temporizador (min)\", min: 1, max: 60 },\n  { type: \"checkbox\", key: \"temporizador\", label: \"Iniciar el temporizador al enviar\", description: \"n8n responde con la acción set_timer\" },\n  { type: \"multiselect\", key: \"temas\", label: \"Temas\", options: [\n    { value: \"n8n\", label: \"n8n\" }, { value: \"flutter\", label: \"Flutter\" }, { value: \"gym\", label: \"Gym\" },\n  ] },\n  { type: \"button\", label: \"Enviar a n8n\", icon: \"send\", action: {\n    type: \"submit\", path: \"n8n-connect/apps/tools/echo\", keys: [\"volumen\", \"minutos\", \"temporizador\", \"temas\"], loading: \"Enviando…\",\n  } },\n];\n\nconst acciones = [\n  { type: \"list\", items: [\n    { title: \"Compartir un texto\", icon: \"send\", action: { type: \"share\", text: \"Hola desde n8n Connect 👋\" } },\n    { title: \"Abrir en el mapa\", subtitle: \"Madrid\", icon: \"location_on\", action: { type: \"maps\", query: \"Puerta del Sol, Madrid\" } },\n    { title: \"Cómo llegar\", icon: \"directions_car\", action: { type: \"maps\", query: \"Puerta del Sol, Madrid\", navigate: true } },\n    { title: \"Ajustes de WiFi\", icon: \"settings\", action: { type: \"open_settings\", panel: \"wifi\" } },\n    { title: \"Ver mis alarmas\", icon: \"alarm\", action: { type: \"show_alarms\" } },\n    { title: \"Vibrar\", icon: \"bolt\", action: { type: \"vibrate\", style: \"heavy\" } },\n    { title: \"Escribirme un email\", subtitle: user.email ?? \"\", icon: \"email\", action: { type: \"email\", to: user.email ?? \"\", subject: \"Desde n8n Connect\", body: \"Enviado desde la app Herramientas\" } },\n    { title: \"Copiar el portapapeles a la app\", icon: \"edit\", action: { type: \"read_clipboard\", key: \"portapapeles\" } },\n  ] },\n  { type: \"details\", items: [{ label: \"Portapapeles\", value: \"{{portapapeles}}\" }], visible: \"{{portapapeles}}\" },\n];\n\nreturn [{ json: {\n  schema: 1,\n  title: \"Herramientas\",\n  start: \"panel\",\n  refreshSeconds: 30,\n  state: {\n    hora: $now.toFormat(\"HH:mm:ss\"),\n    segundos: $now.second,\n    compartidos: shared.length,\n    volumen: 40,\n    minutos: 5,\n    temporizador: false,\n    temas: [\"n8n\"],\n    alarma_hora: $now.plus({ hours: 1 }).startOf(\"hour\").toFormat(\"HH:mm\"),\n    alarma_etiqueta: \"Alarma n8n\",\n    alarma_push: false,\n  },\n  screens: [\n    { id: \"panel\", title: \"Panel en vivo\", components: panel },\n    { id: \"alarma\", title: \"Poner alarma\", components: alarma },\n    { id: \"alarma_hecha\", title: \"Listo\", components: [\n      { type: \"banner\", tone: \"success\", icon: \"check_circle\", text: \"{{alarma_resultado}}\" },\n      { type: \"button\", label: \"Otra alarma\", icon: \"arrow_back\", style: \"outlined\", action: { type: \"navigate\", screen: \"alarma\" } },\n    ] },\n    { id: \"form\", title: \"Formulario\", components: form },\n    { id: \"acciones\", title: \"Acciones del móvil\", components: acciones },\n    { id: \"resultado\", title: \"Recibido por n8n\", components: [\n      { type: \"banner\", tone: \"success\", icon: \"check_circle\", text: \"{{eco}}\" },\n      { type: \"button\", label: \"Volver al panel\", icon: \"arrow_back\", style: \"outlined\", action: { type: \"navigate\", screen: \"panel\" } },\n    ] },\n  ],\n} }];"
+        "jsCode": "// Component demo (grid, metric, progress, table, slider, stepper, checkbox,\n// multiselect) and phone actions. Refreshes itself every 30 s (refreshSeconds).\nconst user = $(\"Screen\").first().json.jwtPayload ?? {};\nconst shared = $input.all().map((i) => i.json).filter((r) => r.text)\n  .sort((a, b) => String(b.received_at).localeCompare(String(a.received_at)));\nconst short = (s, n) => (s.length > n ? s.slice(0, n - 1) + \"…\" : s);\nconst rows = shared.slice(0, 5).map((r) => [\n  $now.constructor.fromISO(String(r.received_at)).setZone($now.zoneName).toFormat(\"dd/MM HH:mm\"),\n  short(String(r.subject || r.text), 40),\n]);\n\nconst panel = [\n  { type: \"grid\", columns: 2, components: [\n    { type: \"metric\", label: \"Server time\", value: \"{{server_time}}\", icon: \"schedule\" },\n    { type: \"metric\", label: \"Shared\", value: \"{{shared_items}}\", icon: \"send\", tone: shared.length ? \"success\" : \"info\", caption: \"from the phone\" },\n  ] },\n  { type: \"progress\", label: \"Seconds of the minute\", value: \"{{seconds}}\", max: 60 },\n  { type: \"text\", style: \"subtitle\", text: \"Latest shared items\" },\n  rows.length\n    ? { type: \"table\", columns: [\"Date\", \"Content\"], rows }\n    : { type: \"banner\", tone: \"info\", text: \"Share a link from any app with “Share → n8n Connect” and it will appear here.\" },\n  { type: \"button\", label: \"Set alarm\", icon: \"alarm\", action: { type: \"navigate\", screen: \"alarm\" } },\n  { type: \"button\", label: \"Test form\", icon: \"edit\", style: \"tonal\", action: { type: \"navigate\", screen: \"form\" } },\n  { type: \"button\", label: \"Phone actions\", icon: \"bolt\", style: \"outlined\", action: { type: \"navigate\", screen: \"phone_actions\" } },\n];\n\nconst alarm = [\n  { type: \"banner\", tone: \"info\", icon: \"info\", text: \"n8n validates the time and returns the set_alarm action; the app creates it in the phone's clock app.\" },\n  { type: \"time\", key: \"alarm_time\", label: \"Time\" },\n  { type: \"input\", key: \"alarm_label\", label: \"Label\", hint: \"E.g. Gym\" },\n  { type: \"switch\", key: \"alarm_push\", label: \"Send via push\", description: \"n8n sends it as a notification to all your devices\" },\n  { type: \"button\", label: \"Set alarm\", icon: \"alarm_add\", action: {\n    type: \"submit\", path: \"n8n-connect/apps/tools/alarm\", keys: [\"alarm_time\", \"alarm_label\", \"alarm_push\"], loading: \"Sending to n8n…\",\n  } },\n];\n\nconst form = [\n  { type: \"slider\", key: \"volume\", label: \"Volume\", min: 0, max: 100, step: 5, unit: \"%\" },\n  { type: \"stepper\", key: \"minutes\", label: \"Timer (min)\", min: 1, max: 60 },\n  { type: \"checkbox\", key: \"timer\", label: \"Start the timer when sending\", description: \"n8n responds with the set_timer action\" },\n  { type: \"multiselect\", key: \"topics\", label: \"Topics\", options: [\n    { value: \"n8n\", label: \"n8n\" }, { value: \"flutter\", label: \"Flutter\" }, { value: \"gym\", label: \"Gym\" },\n  ] },\n  { type: \"button\", label: \"Send to n8n\", icon: \"send\", action: {\n    type: \"submit\", path: \"n8n-connect/apps/tools/echo\", keys: [\"volume\", \"minutes\", \"timer\", \"topics\"], loading: \"Sending…\",\n  } },\n];\n\nconst phone_actions = [\n  { type: \"list\", items: [\n    { title: \"Share a text\", icon: \"send\", action: { type: \"share\", text: \"Hello from n8n Connect 👋\" } },\n    { title: \"Open in maps\", subtitle: \"Madrid\", icon: \"location_on\", action: { type: \"maps\", query: \"Puerta del Sol, Madrid\" } },\n    { title: \"Get directions\", icon: \"directions_car\", action: { type: \"maps\", query: \"Puerta del Sol, Madrid\", navigate: true } },\n    { title: \"Wi-Fi settings\", icon: \"settings\", action: { type: \"open_settings\", panel: \"wifi\" } },\n    { title: \"View my alarms\", icon: \"alarm\", action: { type: \"show_alarms\" } },\n    { title: \"Vibrate\", icon: \"bolt\", action: { type: \"vibrate\", style: \"heavy\" } },\n    { title: \"Email me\", subtitle: user.email ?? \"\", icon: \"email\", action: { type: \"email\", to: user.email ?? \"\", subject: \"From n8n Connect\", body: \"Sent from the Tools app\" } },\n    { title: \"Copy the clipboard to the app\", icon: \"edit\", action: { type: \"read_clipboard\", key: \"clipboard\" } },\n  ] },\n  { type: \"details\", items: [{ label: \"Clipboard\", value: \"{{clipboard}}\" }], visible: \"{{clipboard}}\" },\n];\n\nreturn [{ json: {\n  schema: 1,\n  title: \"Tools\",\n  start: \"panel\",\n  refreshSeconds: 30,\n  state: {\n    server_time: $now.toFormat(\"HH:mm:ss\"),\n    seconds: $now.second,\n    shared_items: shared.length,\n    volume: 40,\n    minutes: 5,\n    timer: false,\n    topics: [\"n8n\"],\n    alarm_time: $now.plus({ hours: 1 }).startOf(\"hour\").toFormat(\"HH:mm\"),\n    alarm_label: \"n8n alarm\",\n    alarm_push: false,\n  },\n  screens: [\n    { id: \"panel\", title: \"Live panel\", components: panel },\n    { id: \"alarm\", title: \"Set alarm\", components: alarm },\n    { id: \"alarm_done\", title: \"Done\", components: [\n      { type: \"banner\", tone: \"success\", icon: \"check_circle\", text: \"{{alarm_result}}\" },\n      { type: \"button\", label: \"Another alarm\", icon: \"arrow_back\", style: \"outlined\", action: { type: \"navigate\", screen: \"alarm\" } },\n    ] },\n    { id: \"form\", title: \"Form\", components: form },\n    { id: \"phone_actions\", title: \"Phone actions\", components: phone_actions },\n    { id: \"result\", title: \"Received by n8n\", components: [\n      { type: \"banner\", tone: \"success\", icon: \"check_circle\", text: \"{{echo}}\" },\n      { type: \"button\", label: \"Back to panel\", icon: \"arrow_back\", style: \"outlined\", action: { type: \"navigate\", screen: \"panel\" } },\n    ] },\n  ],\n} }];"
       }
     },
     {
       "id": "96a227db-c8a3-4423-9984-0e7118a2e125",
-      "name": "Responder pantalla",
+      "name": "Respond screen",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
       "position": [
@@ -82,7 +82,7 @@
     },
     {
       "id": "4ec56369-3fff-4cf8-b1f3-22b63e56dab1",
-      "name": "Formulario",
+      "name": "Form",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.2,
       "position": [
@@ -106,7 +106,7 @@
     },
     {
       "id": "45e8b884-7f10-48f0-8f48-3e74d6cae687",
-      "name": "Responder con acciones",
+      "name": "Respond with actions",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
@@ -114,12 +114,12 @@
         304
       ],
       "parameters": {
-        "jsCode": "// Eco del formulario + acción opcional (con confirmación) para el móvil\nconst body = $(\"Formulario\").first().json.body ?? {};\nconst minutos = Math.min(Math.max(Number.parseInt(body.minutos, 10) || 1, 1), 60);\nconst temas = Array.isArray(body.temas) ? body.temas.map(String) : [];\nconst quiereTimer = body.temporizador === true || body.temporizador === \"true\";\nconst eco = \"Volumen \" + (body.volumen ?? \"?\") + \"% · \" + minutos + \" min · temas: \" + (temas.join(\", \") || \"ninguno\");\n\nreturn [{ json: {\n  message: \"n8n recibió el formulario\",\n  screen: \"resultado\",\n  state: { eco },\n  actions: quiereTimer\n    ? [{ type: \"set_timer\", seconds: minutos * 60, label: \"n8n Connect\", confirm: { title: \"Temporizador\", message: \"¿Iniciar un temporizador de \" + minutos + \" min?\" } }]\n    : [],\n} }];"
+        "jsCode": "// Form echo + optional action (with confirmation) for the phone\nconst body = $(\"Form\").first().json.body ?? {};\nconst minutes = Math.min(Math.max(Number.parseInt(body.minutes, 10) || 1, 1), 60);\nconst topics = Array.isArray(body.topics) ? body.topics.map(String) : [];\nconst wantsTimer = body.timer === true || body.timer === \"true\";\nconst echo = \"Volume \" + (body.volume ?? \"?\") + \"% · \" + minutes + \" min · topics: \" + (topics.join(\", \") || \"none\");\n\nreturn [{ json: {\n  message: \"n8n received the form\",\n  screen: \"result\",\n  state: { echo },\n  actions: wantsTimer\n    ? [{ type: \"set_timer\", seconds: minutes * 60, label: \"n8n Connect\", confirm: { title: \"Timer\", message: \"Start a \" + minutes + \" min timer?\" } }]\n    : [],\n} }];"
       }
     },
     {
       "id": "bf48eb25-c9e2-48a9-b535-c5d99fba6f1d",
-      "name": "Responder formulario",
+      "name": "Respond form",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
       "position": [
@@ -140,7 +140,7 @@
         -96
       ],
       "parameters": {
-        "content": "## App de demo: Herramientas\n**GET** devuelve un panel en vivo (`refreshSeconds: 30`) con métricas, progreso y la tabla de lo último compartido (nc_inbox), una pantalla de alarma, un formulario (slider, stepper, checkbox, multiselect) y una lista de acciones del móvil.\n\n**POST /echo** devuelve `state` + `screen` y, si se pide, la acción `set_timer` con confirmación.\n\n**POST /alarm** valida la hora y responde `set_alarm`, o la manda por push con **Enviar al móvil**.",
+        "content": "## Demo app: Tools\n**GET** returns a live panel (`refreshSeconds: 30`) with metrics, progress and the table of the latest shared items (nc_inbox), an alarm screen, a form (slider, stepper, checkbox, multiselect) and a list of phone actions.\n\n**POST /echo** returns `state` + `screen` and, if requested, the `set_timer` action with confirmation.\n\n**POST /alarm** validates the time and responds with `set_alarm`, or sends it via push with **Send to phone**.",
         "height": 224,
         "width": 640,
         "color": 5
@@ -148,7 +148,7 @@
     },
     {
       "id": "49ad638e-7d6e-4ed6-8072-f3cc62fc556a",
-      "name": "Acceso (Pantalla)",
+      "name": "Access (Screen)",
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.4,
       "position": [
@@ -160,7 +160,7 @@
           "__rl": true,
           "mode": "list",
           "value": "REPLACE_WORKFLOW_ID:app-access",
-          "cachedResultName": "n8n Connect · Acceso a app"
+          "cachedResultName": "n8n Connect · App access"
         },
         "workflowInputs": {
           "mappingMode": "defineBelow",
@@ -202,7 +202,7 @@
     },
     {
       "id": "04104723-8990-4e38-804d-86094ce9fd56",
-      "name": "¿Permitido? (Pantalla)",
+      "name": "Allowed? (Screen)",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
@@ -234,7 +234,7 @@
     },
     {
       "id": "cb048883-78ef-49fd-b1d9-2704898338ee",
-      "name": "Sin acceso (Pantalla)",
+      "name": "No access (Screen)",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
       "position": [
@@ -251,7 +251,7 @@
     },
     {
       "id": "a0960f30-7647-4af7-9bb1-f55681698032",
-      "name": "Acceso (Formulario)",
+      "name": "Access (Form)",
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.4,
       "position": [
@@ -263,7 +263,7 @@
           "__rl": true,
           "mode": "list",
           "value": "REPLACE_WORKFLOW_ID:app-access",
-          "cachedResultName": "n8n Connect · Acceso a app"
+          "cachedResultName": "n8n Connect · App access"
         },
         "workflowInputs": {
           "mappingMode": "defineBelow",
@@ -305,7 +305,7 @@
     },
     {
       "id": "cda50ea3-728e-4840-9c22-1d5494328a7c",
-      "name": "¿Permitido? (Formulario)",
+      "name": "Allowed? (Form)",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
@@ -337,7 +337,7 @@
     },
     {
       "id": "74f4ca24-15e3-414a-9a53-df685fc47a52",
-      "name": "Sin acceso (Formulario)",
+      "name": "No access (Form)",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
       "position": [
@@ -354,7 +354,7 @@
     },
     {
       "id": "b85db92f-9d41-4501-b8ce-e905b0c13111",
-      "name": "Poner alarma",
+      "name": "Set alarm",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.2,
       "position": [
@@ -378,7 +378,7 @@
     },
     {
       "id": "03d11c3a-7ca1-4804-8e9d-f4e9c761a1f3",
-      "name": "Acceso (Alarma)",
+      "name": "Access (Alarm)",
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.4,
       "position": [
@@ -390,7 +390,7 @@
           "__rl": true,
           "mode": "list",
           "value": "REPLACE_WORKFLOW_ID:app-access",
-          "cachedResultName": "n8n Connect · Acceso a app"
+          "cachedResultName": "n8n Connect · App access"
         },
         "workflowInputs": {
           "mappingMode": "defineBelow",
@@ -432,7 +432,7 @@
     },
     {
       "id": "75744ac1-96a8-4828-851b-3ad2b2b3b4cf",
-      "name": "¿Permitido? (Alarma)",
+      "name": "Allowed? (Alarm)",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
@@ -464,7 +464,7 @@
     },
     {
       "id": "2d7f8138-b3e4-4980-93af-1471bb622aae",
-      "name": "Sin acceso (Alarma)",
+      "name": "No access (Alarm)",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
       "position": [
@@ -481,7 +481,7 @@
     },
     {
       "id": "36c742b3-5c9f-4306-a184-473e89946631",
-      "name": "Preparar alarma",
+      "name": "Prepare alarm",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
@@ -489,12 +489,12 @@
         620
       ],
       "parameters": {
-        "jsCode": "// Valida la hora enviada por la app y construye la acción de dispositivo\nconst req = $(\"Poner alarma\").first().json;\nconst body = req.body ?? {};\nconst match = /^(\\d{1,2}):(\\d{2})$/.exec(String(body.alarma_hora ?? \"\").trim());\nif (!match || Number(match[1]) > 23 || Number(match[2]) > 59) {\n  return [{ json: { ok: false, status: 400, error: { code: \"bad_time\", message: \"Hora no válida (usa HH:mm).\" } } }];\n}\nconst hour = Number(match[1]);\nconst minute = Number(match[2]);\nconst label = String(body.alarma_etiqueta ?? \"\").trim().slice(0, 60) || \"Alarma n8n\";\nconst hhmm = String(hour).padStart(2, \"0\") + \":\" + String(minute).padStart(2, \"0\");\nreturn [{ json: {\n  ok: true,\n  push: body.alarma_push === true || body.alarma_push === \"true\",\n  email: String(req.jwtPayload?.email ?? \"\"),\n  hhmm,\n  label,\n  action: { type: \"set_alarm\", hour, minute, label },\n} }];"
+        "jsCode": "// Validates the time sent by the app and builds the device action\nconst req = $(\"Set alarm\").first().json;\nconst body = req.body ?? {};\nconst match = /^(\\d{1,2}):(\\d{2})$/.exec(String(body.alarm_time ?? \"\").trim());\nif (!match || Number(match[1]) > 23 || Number(match[2]) > 59) {\n  return [{ json: { ok: false, status: 400, error: { code: \"bad_time\", message: \"Invalid time (use HH:mm).\" } } }];\n}\nconst hour = Number(match[1]);\nconst minute = Number(match[2]);\nconst label = String(body.alarm_label ?? \"\").trim().slice(0, 60) || \"n8n alarm\";\nconst hhmm = String(hour).padStart(2, \"0\") + \":\" + String(minute).padStart(2, \"0\");\nreturn [{ json: {\n  ok: true,\n  push: body.alarm_push === true || body.alarm_push === \"true\",\n  email: String(req.jwtPayload?.email ?? \"\"),\n  hhmm,\n  label,\n  action: { type: \"set_alarm\", hour, minute, label },\n} }];"
       }
     },
     {
       "id": "afd14c28-e91d-4641-8fd3-7ff180b36be6",
-      "name": "¿Hora válida?",
+      "name": "Valid time?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
@@ -526,7 +526,7 @@
     },
     {
       "id": "17ddc2bf-7abc-4e8e-86ce-ba1a36809fa9",
-      "name": "¿Por push?",
+      "name": "Via push?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
@@ -558,7 +558,7 @@
     },
     {
       "id": "45ae376b-a706-40dc-ae0c-fd37ebcecea5",
-      "name": "Enviar al móvil",
+      "name": "Send to phone",
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.4,
       "position": [
@@ -570,13 +570,13 @@
           "__rl": true,
           "mode": "list",
           "value": "REPLACE_WORKFLOW_ID:send-to-phone",
-          "cachedResultName": "n8n Connect · Enviar al móvil"
+          "cachedResultName": "n8n Connect · Send to phone"
         },
         "workflowInputs": {
           "mappingMode": "defineBelow",
           "value": {
             "email": "={{ $json.email }}",
-            "title": "={{ \"Alarma \" + $json.hhmm }}",
+            "title": "={{ \"Alarm \" + $json.hhmm }}",
             "body": "={{ $json.label }}",
             "actions": "={{ [$json.action] }}",
             "app": "tools"
@@ -646,7 +646,7 @@
     },
     {
       "id": "5ef69605-0cc5-4ee9-a938-1fa25a0c49e2",
-      "name": "Responder push",
+      "name": "Respond push",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
       "position": [
@@ -655,7 +655,7 @@
       ],
       "parameters": {
         "respondWith": "json",
-        "responseBody": "={{ $json.sent > 0 ? { message: \"Push enviado a \" + $json.sent + \" dispositivo(s)\", state: { alarma_resultado: \"Alarma de las \" + $(\"Preparar alarma\").first().json.hhmm + \" enviada por push. Pulsa la notificación para crearla.\" }, screen: \"alarma_hecha\" } : { error: { code: \"push_failed\", message: $json.reason === \"no_devices\" ? \"No hay dispositivos con push registrados.\" : \"No se pudo enviar el push. ¿Está configurada la credencial de Firebase en Enviar al móvil?\" } } }}",
+        "responseBody": "={{ $json.sent > 0 ? { message: \"Push sent to \" + $json.sent + \" device(s)\", state: { alarm_result: \"Alarm at \" + $(\"Prepare alarm\").first().json.hhmm + \" sent via push. Tap the notification to create it.\" }, screen: \"alarm_done\" } : { error: { code: \"push_failed\", message: $json.reason === \"no_devices\" ? \"No devices with push registered.\" : \"Could not send the push. Is the Firebase credential set up in the Send to phone workflow (Send FCM node)?\" } } }}",
         "options": {
           "responseCode": "={{ $json.sent > 0 ? 200 : 424 }}"
         }
@@ -663,7 +663,7 @@
     },
     {
       "id": "806d3d79-4fcb-49b6-967d-29f21730ed40",
-      "name": "Responder con acción",
+      "name": "Respond with action",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
       "position": [
@@ -672,13 +672,13 @@
       ],
       "parameters": {
         "respondWith": "json",
-        "responseBody": "={{ { message: \"Alarma enviada al reloj: \" + $json.hhmm, state: { alarma_resultado: \"Alarma \\\"\" + $json.label + \"\\\" a las \" + $json.hhmm + \" creada en el reloj del móvil.\" }, screen: \"alarma_hecha\", actions: [$json.action] } }}",
+        "responseBody": "={{ { message: \"Alarm sent to the phone clock: \" + $json.hhmm, state: { alarm_result: \"Alarm \\\"\" + $json.label + \"\\\" at \" + $json.hhmm + \" created on the phone clock.\" }, screen: \"alarm_done\", actions: [$json.action] } }}",
         "options": {}
       }
     },
     {
       "id": "033b1d47-84ec-4d59-aee1-b2aeb0c44ba3",
-      "name": "Responder hora no válida",
+      "name": "Respond invalid time",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
       "position": [
@@ -695,211 +695,211 @@
     }
   ],
   "connections": {
-    "Mis compartidos": {
+    "My shared items": {
       "main": [
         [
           {
-            "node": "Construir pantalla",
+            "node": "Build screen",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Construir pantalla": {
+    "Build screen": {
       "main": [
         [
           {
-            "node": "Responder pantalla",
+            "node": "Respond screen",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Responder con acciones": {
+    "Respond with actions": {
       "main": [
         [
           {
-            "node": "Responder formulario",
+            "node": "Respond form",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Pantalla": {
+    "Screen": {
       "main": [
         [
           {
-            "node": "Acceso (Pantalla)",
+            "node": "Access (Screen)",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Acceso (Pantalla)": {
+    "Access (Screen)": {
       "main": [
         [
           {
-            "node": "¿Permitido? (Pantalla)",
+            "node": "Allowed? (Screen)",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "¿Permitido? (Pantalla)": {
+    "Allowed? (Screen)": {
       "main": [
         [
           {
-            "node": "Mis compartidos",
+            "node": "My shared items",
             "type": "main",
             "index": 0
           }
         ],
         [
           {
-            "node": "Sin acceso (Pantalla)",
+            "node": "No access (Screen)",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Formulario": {
+    "Form": {
       "main": [
         [
           {
-            "node": "Acceso (Formulario)",
+            "node": "Access (Form)",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Acceso (Formulario)": {
+    "Access (Form)": {
       "main": [
         [
           {
-            "node": "¿Permitido? (Formulario)",
+            "node": "Allowed? (Form)",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "¿Permitido? (Formulario)": {
+    "Allowed? (Form)": {
       "main": [
         [
           {
-            "node": "Responder con acciones",
+            "node": "Respond with actions",
             "type": "main",
             "index": 0
           }
         ],
         [
           {
-            "node": "Sin acceso (Formulario)",
+            "node": "No access (Form)",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Poner alarma": {
+    "Set alarm": {
       "main": [
         [
           {
-            "node": "Acceso (Alarma)",
+            "node": "Access (Alarm)",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Acceso (Alarma)": {
+    "Access (Alarm)": {
       "main": [
         [
           {
-            "node": "¿Permitido? (Alarma)",
+            "node": "Allowed? (Alarm)",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "¿Permitido? (Alarma)": {
+    "Allowed? (Alarm)": {
       "main": [
         [
           {
-            "node": "Preparar alarma",
+            "node": "Prepare alarm",
             "type": "main",
             "index": 0
           }
         ],
         [
           {
-            "node": "Sin acceso (Alarma)",
+            "node": "No access (Alarm)",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Preparar alarma": {
+    "Prepare alarm": {
       "main": [
         [
           {
-            "node": "¿Hora válida?",
+            "node": "Valid time?",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "¿Hora válida?": {
+    "Valid time?": {
       "main": [
         [
           {
-            "node": "¿Por push?",
+            "node": "Via push?",
             "type": "main",
             "index": 0
           }
         ],
         [
           {
-            "node": "Responder hora no válida",
+            "node": "Respond invalid time",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "¿Por push?": {
+    "Via push?": {
       "main": [
         [
           {
-            "node": "Enviar al móvil",
+            "node": "Send to phone",
             "type": "main",
             "index": 0
           }
         ],
         [
           {
-            "node": "Responder con acción",
+            "node": "Respond with action",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Enviar al móvil": {
+    "Send to phone": {
       "main": [
         [
           {
-            "node": "Responder push",
+            "node": "Respond push",
             "type": "main",
             "index": 0
           }

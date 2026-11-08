@@ -1,17 +1,17 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- Red: en release no se añade sola (solo en debug/profile) -->
+    <!-- Network: in release it is not added automatically (only in debug/profile) -->
     <uses-permission android:name="android.permission.INTERNET" />
-    <!-- Notificaciones (Android 13+) para las acciones push de n8n -->
+    <!-- Notifications (Android 13+) for n8n push actions -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-    <!-- Necesario para lanzar AlarmClock.ACTION_SET_ALARM / ACTION_SET_TIMER -->
+    <!-- Required to launch AlarmClock.ACTION_SET_ALARM / ACTION_SET_TIMER -->
     <uses-permission android:name="com.android.alarm.permission.SET_ALARM" />
-    <!-- Acción `report`: ubicación del móvil para n8n. La de segundo plano permite
-         que n8n la pida por push con la app cerrada (p. ej. el despertador). -->
+    <!-- `report` action: phone location for n8n. The background permission lets
+         n8n request it by push while the app is closed (e.g. a wake-up alarm). -->
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
-    <!-- Las alarmas propias (schedule_alarm) las declara el plugin `alarm`:
-         alarmas exactas, arranque, servicio en primer plano y pantalla completa. -->
+    <!-- The app's own alarms (schedule_alarm) are declared by the `alarm` plugin:
+         exact alarms, boot start, foreground service and full-screen display. -->
 
     <application
         android:label="n8n Connect"
@@ -46,7 +46,7 @@
                 <data android:mimeType="text/plain" />
             </intent-filter>
         </activity>
-        <!-- Canal por defecto para mensajes FCM con bloque "notification" -->
+        <!-- Default channel for FCM messages with a "notification" block -->
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_channel_id"
             android:value="n8n_connect_actions" />

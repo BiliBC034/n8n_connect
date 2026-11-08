@@ -4,7 +4,7 @@ import '../../core/json.dart';
 class ConfirmSpec {
   const ConfirmSpec({required this.message, this.title, this.confirmLabel});
 
-  /// Accepts `"¿Seguro?"` or `{"title", "message", "confirmLabel"}`.
+  /// Accepts `"Sure?"` or `{"title", "message", "confirmLabel"}`.
   static ConfirmSpec? fromJson(Object? json) {
     if (json is String && json.trim().isNotEmpty) {
       return ConfirmSpec(message: json.trim());

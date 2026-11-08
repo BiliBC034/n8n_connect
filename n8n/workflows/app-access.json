@@ -1,9 +1,9 @@
 {
-  "name": "n8n Connect · Acceso a app",
+  "name": "n8n Connect · App access",
   "nodes": [
     {
       "id": "59633db8-4404-4805-8ce8-21341d2d5697",
-      "name": "Comprobar acceso",
+      "name": "Check access",
       "type": "n8n-nodes-base.executeWorkflowTrigger",
       "typeVersion": 1.3,
       "position": [
@@ -28,7 +28,7 @@
     },
     {
       "id": "e032b9f5-d61d-42ae-bbce-6c5d1c9a2798",
-      "name": "Leer app",
+      "name": "Read app",
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1.1,
       "position": [
@@ -61,7 +61,7 @@
     },
     {
       "id": "340a7e0a-f1f4-44ec-ab29-009e0664e8ae",
-      "name": "Decidir acceso",
+      "name": "Decide access",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
@@ -71,7 +71,7 @@
       "parameters": {
         "mode": "runOnceForAllItems",
         "language": "javaScript",
-        "jsCode": "// Misma regla que el catálogo: fila activa en nc_apps y email en allowed_emails (vacío = todos)\nconst input = $(\"Comprobar acceso\").first().json;\nconst email = String(input.email ?? \"\").trim().toLowerCase();\nconst row = $input.first().json;\nconst deny = (message) => [{ json: { allowed: false, error: { code: \"app_forbidden\", message } } }];\n\nif (!email) return deny(\"Sesión sin email.\");\nif (!row.app_id) return deny(\"Esta app no está registrada en el servidor.\");\nif (row.enabled !== true) return deny(\"Esta app está desactivada en el servidor.\");\nconst allowed = String(row.allowed_emails ?? \"\").split(\",\").map((s) => s.trim().toLowerCase()).filter(Boolean);\nif (allowed.length && !allowed.includes(email)) return deny(\"Tu cuenta no tiene acceso a esta app.\");\nreturn [{ json: { allowed: true } }];"
+        "jsCode": "// Same rule as the catalog: active row in nc_apps and email in allowed_emails (empty = all)\nconst input = $(\"Check access\").first().json;\nconst email = String(input.email ?? \"\").trim().toLowerCase();\nconst row = $input.first().json;\nconst deny = (message) => [{ json: { allowed: false, error: { code: \"app_forbidden\", message } } }];\n\nif (!email) return deny(\"Session has no email.\");\nif (!row.app_id) return deny(\"This app is not registered on the server.\");\nif (row.enabled !== true) return deny(\"This app is disabled on the server.\");\nconst allowed = String(row.allowed_emails ?? \"\").split(\",\").map((s) => s.trim().toLowerCase()).filter(Boolean);\nif (allowed.length && !allowed.includes(email)) return deny(\"Your account does not have access to this app.\");\nreturn [{ json: { allowed: true } }];"
       }
     },
     {
@@ -84,7 +84,7 @@
         -96
       ],
       "parameters": {
-        "content": "## Control de acceso por app\nUsa este sub-workflow al principio de **cada webhook de tus apps** (justo después del Webhook con JWT Auth): entradas `app_id` y `email` (= `$json.jwtPayload.email`).\n\nDevuelve `{allowed: true}` o `{allowed: false, error: {code: \"app_forbidden\", message}}`. Si no está permitido, responde **403 con ese JSON** (la app muestra el mensaje).",
+        "content": "## Per-app access control\nUse this sub-workflow at the start of **every webhook in your apps** (right after the Webhook with JWT Auth): inputs `app_id` and `email` (= `$json.jwtPayload.email`).\n\nReturns `{allowed: true}` or `{allowed: false, error: {code: \"app_forbidden\", message}}`. If access is not allowed, respond with **403 and that JSON** (the app shows the message).",
         "color": 4,
         "width": 400,
         "height": 224
@@ -92,22 +92,22 @@
     }
   ],
   "connections": {
-    "Comprobar acceso": {
+    "Check access": {
       "main": [
         [
           {
-            "node": "Leer app",
+            "node": "Read app",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Leer app": {
+    "Read app": {
       "main": [
         [
           {
-            "node": "Decidir acceso",
+            "node": "Decide access",
             "type": "main",
             "index": 0
           }

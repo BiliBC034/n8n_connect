@@ -22,8 +22,8 @@ void main() {
 
     test('spaces become %20, not +', () {
       expect(
-        buildMailtoUri('a@b.com', subject: 'Hola mundo'),
-        'mailto:a@b.com?subject=Hola%20mundo',
+        buildMailtoUri('a@b.com', subject: 'Hello world'),
+        'mailto:a@b.com?subject=Hello%20world',
       );
     });
 
@@ -32,16 +32,13 @@ void main() {
         buildMailtoUri('a@b.com', subject: '', body: ''),
         'mailto:a@b.com',
       );
-      expect(
-        buildMailtoUri('a@b.com', body: 'Hola'),
-        'mailto:a@b.com?body=Hola',
-      );
+      expect(buildMailtoUri('a@b.com', body: 'Hi'), 'mailto:a@b.com?body=Hi');
     });
 
     test('subject and body are joined with &', () {
       expect(
-        buildMailtoUri('a@b.com', subject: 'Hi', body: 'Yo tal'),
-        'mailto:a@b.com?subject=Hi&body=Yo%20tal',
+        buildMailtoUri('a@b.com', subject: 'Hi', body: 'How are you'),
+        'mailto:a@b.com?subject=Hi&body=How%20are%20you',
       );
     });
 
@@ -68,8 +65,8 @@ void main() {
 
     test('label is added to the pin', () {
       expect(
-        buildMapsUri(lat: 40.4, lng: -3.7, label: 'Casa Ana'),
-        'geo:40.4,-3.7?q=40.4,-3.7(Casa%20Ana)',
+        buildMapsUri(lat: 40.4, lng: -3.7, label: 'Ana House'),
+        'geo:40.4,-3.7?q=40.4,-3.7(Ana%20House)',
       );
     });
 

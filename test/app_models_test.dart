@@ -6,7 +6,7 @@ void main() {
   final screens = [
     {
       'id': 'home',
-      'title': 'Inicio',
+      'title': 'Home',
       'components': [
         {'type': 'button'},
       ],
@@ -18,16 +18,16 @@ void main() {
     test('reads a valid entry', () {
       final app = AppSummary.fromJson({
         'id': 'alarm',
-        'name': 'Alarmas',
+        'name': 'Alarms',
         'path': 'apps/alarm',
-        'description': 'Despierta',
+        'description': 'Wake up',
         'icon': 'alarm',
         'color': '#ff0000',
       })!;
       expect(app.id, 'alarm');
-      expect(app.name, 'Alarmas');
+      expect(app.name, 'Alarms');
       expect(app.path, 'apps/alarm');
-      expect(app.description, 'Despierta');
+      expect(app.description, 'Wake up');
       expect(app.icon, 'alarm');
       expect(app.color, '#ff0000');
     });
@@ -138,11 +138,11 @@ void main() {
   group('ActionResponse.fromJson', () {
     test('reads every field', () {
       final response = ActionResponse.fromJson({
-        'message': 'Hecho',
+        'message': 'Done',
         'state': {'count': 2},
         'screen': 'done',
         'actions': [
-          {'type': 'toast', 'message': 'hola'},
+          {'type': 'toast', 'message': 'hello'},
         ],
         'spec': {
           'schema': 1,
@@ -152,7 +152,7 @@ void main() {
           ],
         },
       });
-      expect(response.message, 'Hecho');
+      expect(response.message, 'Done');
       expect(response.state, {'count': 2});
       expect(response.screen, 'done');
       expect(response.actions, hasLength(1));

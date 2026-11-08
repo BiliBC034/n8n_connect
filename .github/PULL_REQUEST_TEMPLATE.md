@@ -1,16 +1,16 @@
-## Qué cambia
+## What changes
 
-<!-- Describe brevemente el cambio y por qué es necesario. -->
+<!-- Briefly describe the change and why it is needed. -->
 
-## Tipo de cambio
+## Type of change
 
-- [ ] feat: nueva funcionalidad
-- [ ] fix: corrección de error
+- [ ] feat: new feature
+- [ ] fix: bug fix
 - [ ] perf / refactor / docs / test / chore
 
 ## Checklist
 
-- [ ] `flutter analyze` no muestra avisos
-- [ ] `flutter test` pasa
-- [ ] `docs/PROTOCOL.md` está actualizado si cambia el protocolo
-- [ ] No incluye secretos ni datos personales (claves, correos, IPs, IDs de n8n, `google-services.json`)
+- [ ] `flutter analyze` shows no warnings
+- [ ] `flutter test` passes
+- [ ] `docs/PROTOCOL.md` is up to date if the protocol changes
+- [ ] It contains no secrets or personal data (keys, emails, IPs, n8n IDs, `google-services.json`)

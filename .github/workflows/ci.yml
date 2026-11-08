@@ -11,29 +11,29 @@ permissions:
 
 jobs:
   analyze-and-test:
-    name: Analizar y probar
+    name: Analyze and test
     runs-on: ubuntu-latest
     steps:
-      - name: Descargar el código
-        uses: actions/checkout@v4
+      - name: Check out the code
+        uses: actions/checkout@v5
 
-      - name: Instalar Flutter
+      - name: Install Flutter
         uses: subosito/flutter-action@v2
         with:
           channel: stable
           flutter-version: '3.35.x'
           cache: true
 
-      - name: Configuración de Firebase de ejemplo
+      - name: Copy the example Firebase configuration
         run: |
           cp lib/firebase_options.example.dart lib/firebase_options.dart
           cp lib/firebase_web_client.example.dart lib/firebase_web_client.dart
 
-      - name: Obtener dependencias
+      - name: Get dependencies
         run: flutter pub get
 
-      - name: Analizar el código
+      - name: Analyze the code
         run: flutter analyze
 
-      - name: Ejecutar los tests
+      - name: Run tests
         run: flutter test

@@ -74,12 +74,12 @@ void main() {
     await _pump(
       tester,
       DevicePermission.notifications,
-      label: 'Avisos',
-      description: 'Para las alarmas',
+      label: 'Alerts',
+      description: 'For alarms',
     );
 
-    expect(find.text('Avisos'), findsOneWidget);
+    expect(find.text('Alerts'), findsOneWidget);
     expect(find.text('Notifications'), findsNothing);
-    expect(find.text('Para las alarmas'), findsOneWidget);
+    expect(find.text('For alarms'), findsOneWidget);
   });
 }
