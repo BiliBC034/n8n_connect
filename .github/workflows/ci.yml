@@ -1,0 +1,39 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  analyze-and-test:
+    name: Analizar y probar
+    runs-on: ubuntu-latest
+    steps:
+      - name: Descargar el código
+        uses: actions/checkout@v4
+
+      - name: Instalar Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: '3.35.x'
+          cache: true
+
+      - name: Configuración de Firebase de ejemplo
+        run: |
+          cp lib/firebase_options.example.dart lib/firebase_options.dart
+          cp lib/firebase_web_client.example.dart lib/firebase_web_client.dart
+
+      - name: Obtener dependencias
+        run: flutter pub get
+
+      - name: Analizar el código
+        run: flutter analyze
+
+      - name: Ejecutar los tests
+        run: flutter test

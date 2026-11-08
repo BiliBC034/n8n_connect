@@ -1,0 +1,76 @@
+# Miscellaneous
+*.class
+*.log
+*.pyc
+*.swp
+.DS_Store
+.atom/
+.build/
+.buildlog/
+.history
+.svn/
+.swiftpm/
+migrate_working_dir/
+
+# IntelliJ / Android Studio
+*.iml
+*.ipr
+*.iws
+.idea/
+
+# VS Code: el comentario de abajo permite versionar la configuración de VS Code.
+# Quita el # si no quieres subirla.
+#.vscode/
+
+# Flutter / Dart / Pub
+**/doc/api/
+**/ios/Flutter/.last_build_id
+.dart_tool/
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+/build/
+/coverage/
+
+# Símbolos de depuración y ofuscación
+app.*.symbols
+app.*.map.json
+
+# Android Studio: artefactos de compilación
+/android/app/debug
+/android/app/profile
+/android/app/release
+
+# Android: salida de compilación
+/android/build/
+
+# Configuración local de Firebase (ver README)
+/google-services.json
+android/app/google-services.json
+lib/firebase_options.dart
+lib/firebase_web_client.dart
+firebase.json
+ios/Runner/GoogleService-Info.plist
+
+# Herramientas de agentes y notas personales
+CLAUDE.md
+.claude/
+NOTES.local.md
+
+# Firma de Android
+*.jks
+*.keystore
+android/key.properties
+
+# Secretos locales: cuentas de servicio y variables de entorno (los .example sí se versionan)
+*-firebase-adminsdk-*.json
+service-account*.json
+cuenta-servicio*.json
+.env
+.env.*
+!.env.example
+
+# Artefactos
+*.apk
+*.aab
+/dist/

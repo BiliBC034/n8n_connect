@@ -1,0 +1,121 @@
+{
+  "name": "n8n Connect · Acceso a app",
+  "nodes": [
+    {
+      "id": "59633db8-4404-4805-8ce8-21341d2d5697",
+      "name": "Comprobar acceso",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "inputSource": "workflowInputs",
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "app_id",
+              "type": "string"
+            },
+            {
+              "name": "email",
+              "type": "string"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "e032b9f5-d61d-42ae-bbce-6c5d1c9a2798",
+      "name": "Leer app",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        240,
+        0
+      ],
+      "parameters": {
+        "resource": "row",
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "REPLACE_DATA_TABLE_ID:nc_apps",
+          "cachedResultName": "nc_apps"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "app_id",
+              "condition": "eq",
+              "keyValue": "={{ $json.app_id }}"
+            }
+          ]
+        },
+        "returnAll": false,
+        "limit": 1
+      },
+      "alwaysOutputData": true
+    },
+    {
+      "id": "340a7e0a-f1f4-44ec-ab29-009e0664e8ae",
+      "name": "Decidir acceso",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        480,
+        0
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// Misma regla que el catálogo: fila activa en nc_apps y email en allowed_emails (vacío = todos)\nconst input = $(\"Comprobar acceso\").first().json;\nconst email = String(input.email ?? \"\").trim().toLowerCase();\nconst row = $input.first().json;\nconst deny = (message) => [{ json: { allowed: false, error: { code: \"app_forbidden\", message } } }];\n\nif (!email) return deny(\"Sesión sin email.\");\nif (!row.app_id) return deny(\"Esta app no está registrada en el servidor.\");\nif (row.enabled !== true) return deny(\"Esta app está desactivada en el servidor.\");\nconst allowed = String(row.allowed_emails ?? \"\").split(\",\").map((s) => s.trim().toLowerCase()).filter(Boolean);\nif (allowed.length && !allowed.includes(email)) return deny(\"Tu cuenta no tiene acceso a esta app.\");\nreturn [{ json: { allowed: true } }];"
+      }
+    },
+    {
+      "id": "ef056ecf-2d16-4f1d-b0d8-3b5db561568f",
+      "name": "Sticky Note 46067798",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        208,
+        -96
+      ],
+      "parameters": {
+        "content": "## Control de acceso por app\nUsa este sub-workflow al principio de **cada webhook de tus apps** (justo después del Webhook con JWT Auth): entradas `app_id` y `email` (= `$json.jwtPayload.email`).\n\nDevuelve `{allowed: true}` o `{allowed: false, error: {code: \"app_forbidden\", message}}`. Si no está permitido, responde **403 con ese JSON** (la app muestra el mensaje).",
+        "color": 4,
+        "width": 400,
+        "height": 224
+      }
+    }
+  ],
+  "connections": {
+    "Comprobar acceso": {
+      "main": [
+        [
+          {
+            "node": "Leer app",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leer app": {
+      "main": [
+        [
+          {
+            "node": "Decidir acceso",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

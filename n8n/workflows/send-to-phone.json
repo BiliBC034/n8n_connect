@@ -1,0 +1,260 @@
+{
+  "name": "n8n Connect · Enviar al móvil",
+  "nodes": [
+    {
+      "id": "3d604c72-6c34-41cd-aa5f-47a4d3bc272f",
+      "name": "Al llamar desde otro workflow",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "email"
+            },
+            {
+              "name": "title"
+            },
+            {
+              "name": "body"
+            },
+            {
+              "name": "actions",
+              "type": "array"
+            },
+            {
+              "name": "app"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "59bd81c1-1899-4a67-9f40-13dde39adedc",
+      "name": "Dispositivos con push",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        240,
+        0
+      ],
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "REPLACE_DATA_TABLE_ID:nc_devices",
+          "cachedResultName": "nc_devices"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "email",
+              "keyValue": "={{ String($json.email || \"\").toLowerCase() }}"
+            },
+            {
+              "keyName": "fcm_token",
+              "condition": "isNotEmpty"
+            }
+          ]
+        },
+        "returnAll": true
+      },
+      "alwaysOutputData": true
+    },
+    {
+      "id": "6116efcc-e872-49bc-8e34-fce2dd3a01f6",
+      "name": "¿Hay dispositivos?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        480,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.fcm_token }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "d22267c0-1ecd-471f-a31e-5f415f88cac4",
+      "name": "Enviar FCM",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        720,
+        -96
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://fcm.googleapis.com/v1/projects/REPLACE_FIREBASE_PROJECT_ID/messages:send",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ message: { token: $json.fcm_token, android: { priority: \"HIGH\", ttl: \"3600s\" }, data: { nc: \"1\", id: String($execution.id) + \"-\" + $json.id, to: String($json.email || \"\").toLowerCase(), title: String($(\"Al llamar desde otro workflow\").first().json.title || \"n8n Connect\"), body: String($(\"Al llamar desde otro workflow\").first().json.body || \"\"), actions: JSON.stringify($(\"Al llamar desde otro workflow\").first().json.actions || []), app: String($(\"Al llamar desde otro workflow\").first().json.app || \"\") } } }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          },
+          "timeout": 15000
+        }
+      },
+      "credentials": {
+        "googleApi": {
+          "id": "REPLACE_CREDENTIAL_ID:n8n Connect FCM",
+          "name": "n8n Connect FCM"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "c4338433-d215-4335-817a-3a1ca9f53c17",
+      "name": "Resumen de envío",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        960,
+        -96
+      ],
+      "parameters": {
+        "jsCode": "// Cuenta envíos y detecta tokens caducados (FCM responde 404 UNREGISTERED)\nconst results = $input.all();\nconst devices = $(\"Dispositivos con push\").all();\nconst unregistered = [];\nlet sent = 0;\nresults.forEach((item, i) => {\n  const res = item.json;\n  if (res.statusCode === 200) sent += 1;\n  else if (res.statusCode === 404 || JSON.stringify(res.body ?? \"\").includes(\"UNREGISTERED\")) unregistered.push(devices[i]?.json.device_id);\n});\nreturn [{ json: { sent, failed: results.length - sent, unregistered: unregistered.filter(Boolean) } }];"
+      }
+    },
+    {
+      "id": "8901bec4-6a6e-4feb-8bd3-7250374f3dee",
+      "name": "Sin dispositivos",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        720,
+        128
+      ],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "sent",
+              "name": "sent",
+              "value": 0,
+              "type": "number"
+            },
+            {
+              "id": "failed",
+              "name": "failed",
+              "value": 0,
+              "type": "number"
+            },
+            {
+              "id": "reason",
+              "name": "reason",
+              "value": "no_devices",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "executeOnce": true
+    },
+    {
+      "id": "4d7f506d-7d3b-4cf8-b5ac-23b9868bcb0c",
+      "name": "Sticky Note 2f594f7e",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        208,
+        -192
+      ],
+      "parameters": {
+        "content": "## Enviar acciones al móvil (FCM)\nLlama a este workflow con **Execute Sub-workflow**: email, title, body, actions (array de acciones n8n Connect, p. ej. `[{\"type\":\"set_alarm\",\"hour\":7,\"minute\":30}]`) y app (id opcional para abrir).\n\nEnvía un mensaje **data** de alta prioridad a cada dispositivo de nc_devices con token y devuelve `{sent, failed}`. Requiere una credencial **Google Service Account** del proyecto Firebase con el scope `https://www.googleapis.com/auth/firebase.messaging`.",
+        "height": 448,
+        "width": 880,
+        "color": 4
+      }
+    }
+  ],
+  "connections": {
+    "Al llamar desde otro workflow": {
+      "main": [
+        [
+          {
+            "node": "Dispositivos con push",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Dispositivos con push": {
+      "main": [
+        [
+          {
+            "node": "¿Hay dispositivos?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Hay dispositivos?": {
+      "main": [
+        [
+          {
+            "node": "Enviar FCM",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Sin dispositivos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enviar FCM": {
+      "main": [
+        [
+          {
+            "node": "Resumen de envío",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

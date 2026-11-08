@@ -1,0 +1,13 @@
+# Normaliza los finales de línea a LF en el repositorio
+* text=auto eol=lf
+
+# Archivos binarios: Git no intenta tratarlos como texto
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.jar binary
+*.keystore binary
+*.jks binary

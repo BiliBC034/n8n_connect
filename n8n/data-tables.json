@@ -1,0 +1,181 @@
+{
+  "tables": [
+    {
+      "name": "nc_users",
+      "purpose": "Lista de personas que pueden entrar en n8n Connect. Sin fila habilitada, el servidor rechaza la cuenta.",
+      "columns": [
+        {
+          "name": "email",
+          "type": "string",
+          "description": "Email de la cuenta de Firebase. Clave de búsqueda."
+        },
+        {
+          "name": "enabled",
+          "type": "boolean",
+          "description": "Si es false, la persona no puede entrar."
+        },
+        {
+          "name": "role",
+          "type": "string",
+          "description": "Rol del usuario. Se devuelve en user.role."
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "description": "Nombre a mostrar. Se devuelve en user.name."
+        }
+      ]
+    },
+    {
+      "name": "nc_devices",
+      "purpose": "Dispositivos Android con sesión abierta. Guarda el token FCM que se usa para enviar push.",
+      "columns": [
+        {
+          "name": "device_id",
+          "type": "string",
+          "description": "Identificador aleatorio del dispositivo generado por la app."
+        },
+        {
+          "name": "email",
+          "type": "string",
+          "description": "Usuario dueño del dispositivo."
+        },
+        {
+          "name": "uid",
+          "type": "string",
+          "description": "uid de Firebase del usuario."
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "description": "Nombre del modelo del dispositivo."
+        },
+        {
+          "name": "platform",
+          "type": "string",
+          "description": "Plataforma del dispositivo (android)."
+        },
+        {
+          "name": "fcm_token",
+          "type": "string",
+          "description": "Token FCM de destino de los push. Vacío tras cerrar sesión."
+        },
+        {
+          "name": "app_version",
+          "type": "string",
+          "description": "Versión de la app instalada."
+        },
+        {
+          "name": "last_seen",
+          "type": "date",
+          "description": "Última vez que el dispositivo renovó la sesión."
+        }
+      ]
+    },
+    {
+      "name": "nc_apps",
+      "purpose": "Catálogo de apps que muestra n8n Connect en el móvil.",
+      "columns": [
+        {
+          "name": "app_id",
+          "type": "string",
+          "description": "Identificador de la app. Sale como id en el catálogo."
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "description": "Nombre visible de la app."
+        },
+        {
+          "name": "description",
+          "type": "string",
+          "description": "Descripción corta de la app."
+        },
+        {
+          "name": "icon",
+          "type": "string",
+          "description": "Nombre del icono de la tabla de iconos de la app."
+        },
+        {
+          "name": "color",
+          "type": "string",
+          "description": "Color en formato #RRGGBB."
+        },
+        {
+          "name": "path",
+          "type": "string",
+          "description": "Ruta del webhook que devuelve la spec, p. ej. n8n-connect/apps/tools."
+        },
+        {
+          "name": "enabled",
+          "type": "boolean",
+          "description": "Solo las apps habilitadas aparecen en el catálogo."
+        },
+        {
+          "name": "allowed_emails",
+          "type": "string",
+          "description": "Emails separados por coma. Vacío significa todos los usuarios habilitados."
+        },
+        {
+          "name": "sort",
+          "type": "number",
+          "description": "Orden ascendente en el catálogo."
+        }
+      ]
+    },
+    {
+      "name": "nc_inbox",
+      "purpose": "Textos y enlaces enviados desde otras apps con la opción Compartir. Una fila por envío.",
+      "columns": [
+        {
+          "name": "email",
+          "type": "string",
+          "description": "Usuario que comparte."
+        },
+        {
+          "name": "text",
+          "type": "string",
+          "description": "Texto o enlace compartido."
+        },
+        {
+          "name": "subject",
+          "type": "string",
+          "description": "Asunto de la app de origen. Vacío si no lo tenía."
+        },
+        {
+          "name": "note",
+          "type": "string",
+          "description": "Nota escrita en la app. Vacía si no se escribió."
+        },
+        {
+          "name": "received_at",
+          "type": "date",
+          "description": "Momento de recepción."
+        }
+      ]
+    }
+  ],
+  "seed": {
+    "nc_users": [
+      {
+        "email": "you@example.com",
+        "enabled": true,
+        "role": "admin",
+        "name": "Tu nombre"
+      }
+    ],
+    "nc_apps": [
+      {
+        "app_id": "tools",
+        "name": "Herramientas",
+        "description": "Alarma, panel en vivo, formulario y acciones del móvil",
+        "icon": "bolt",
+        "color": "#0EA5E9",
+        "path": "n8n-connect/apps/tools",
+        "enabled": true,
+        "allowed_emails": "",
+        "sort": 30
+      }
+    ]
+  }
+}

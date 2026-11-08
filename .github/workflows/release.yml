@@ -1,0 +1,143 @@
+name: Release
+
+# Se ejecuta al subir un tag vX.Y.Z. El tag debe coincidir con la versión de pubspec.yaml.
+# Requisitos (secretos del repositorio): ver docs/RELEASING.md.
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  publicar:
+    name: Publicar la release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Descargar el código
+        uses: actions/checkout@v4
+
+      - name: Comprobar los secretos necesarios
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          GOOGLE_SERVICES_JSON_BASE64: ${{ secrets.GOOGLE_SERVICES_JSON_BASE64 }}
+          FIREBASE_OPTIONS_DART_BASE64: ${{ secrets.FIREBASE_OPTIONS_DART_BASE64 }}
+          FIREBASE_WEB_CLIENT_DART_BASE64: ${{ secrets.FIREBASE_WEB_CLIENT_DART_BASE64 }}
+        run: |
+          set -euo pipefail
+          faltan=()
+          for nombre in ANDROID_KEYSTORE_BASE64 ANDROID_KEYSTORE_PASSWORD ANDROID_KEY_ALIAS \
+            ANDROID_KEY_PASSWORD GOOGLE_SERVICES_JSON_BASE64 FIREBASE_OPTIONS_DART_BASE64 \
+            FIREBASE_WEB_CLIENT_DART_BASE64; do
+            if [[ -z "${!nombre:-}" ]]; then
+              faltan+=("$nombre")
+            fi
+          done
+          if (( ${#faltan[@]} > 0 )); then
+            echo "::error::Faltan secretos en GitHub Actions: ${faltan[*]}. Consulta docs/RELEASING.md (tools/release_secrets.sh --gh los sube)."
+            exit 1
+          fi
+          echo "Los 7 secretos están definidos."
+
+      - name: Comprobar que el tag coincide con pubspec.yaml
+        env:
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          version="$(sed -nE 's/^version:[[:space:]]*([0-9]+\.[0-9]+\.[0-9]+)(\+[0-9]+)?[[:space:]]*$/\1/p' pubspec.yaml | head -n1)"
+          if [[ -z "$version" ]]; then
+            echo "::error::No se encuentra 'version: X.Y.Z' en pubspec.yaml"
+            exit 1
+          fi
+          esperado="v${version}"
+          if [[ "$REF_NAME" != "$esperado" ]]; then
+            echo "::error::El tag ${REF_NAME} no coincide con la versión de pubspec.yaml (${esperado}). Corrige el tag o pubspec.yaml."
+            exit 1
+          fi
+          echo "VERSION=${version}" >> "$GITHUB_ENV"
+          echo "Versión de la release: ${version}"
+
+      - name: Comprobar las notas del CHANGELOG
+        run: tools/changelog_section.sh "$VERSION" > /dev/null
+
+      - name: Instalar Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Instalar Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: '3.35.x'
+          cache: true
+
+      - name: Restaurar los archivos de Firebase y la firma
+        env:
+          GOOGLE_SERVICES_JSON_BASE64: ${{ secrets.GOOGLE_SERVICES_JSON_BASE64 }}
+          FIREBASE_OPTIONS_DART_BASE64: ${{ secrets.FIREBASE_OPTIONS_DART_BASE64 }}
+          FIREBASE_WEB_CLIENT_DART_BASE64: ${{ secrets.FIREBASE_WEB_CLIENT_DART_BASE64 }}
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          printf '%s' "$GOOGLE_SERVICES_JSON_BASE64" | base64 -d > android/app/google-services.json
+          printf '%s' "$FIREBASE_OPTIONS_DART_BASE64" | base64 -d > lib/firebase_options.dart
+          printf '%s' "$FIREBASE_WEB_CLIENT_DART_BASE64" | base64 -d > lib/firebase_web_client.dart
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
+          {
+            printf 'storeFile=%s\n' "$RUNNER_TEMP/release.jks"
+            printf 'storePassword=%s\n' "$ANDROID_KEYSTORE_PASSWORD"
+            printf 'keyAlias=%s\n' "$ANDROID_KEY_ALIAS"
+            printf 'keyPassword=%s\n' "$ANDROID_KEY_PASSWORD"
+          } > android/key.properties
+
+      - name: Obtener dependencias
+        run: flutter pub get
+
+      - name: Ejecutar los tests
+        run: flutter test
+
+      - name: Compilar la APK de release
+        run: flutter build apk --release
+
+      - name: Verificar la firma (no puede ser la clave debug)
+        run: tools/verify_apk_signature.sh build/app/outputs/flutter-apk/app-release.apk
+
+      - name: Preparar la APK, el checksum y las notas
+        env:
+          NOTAS_PATH: ${{ runner.temp }}/RELEASE_NOTES.md
+        run: |
+          set -euo pipefail
+          apk="n8n-connect-v${VERSION}.apk"
+          cp build/app/outputs/flutter-apk/app-release.apk "$apk"
+          sha256sum "$apk" > "$apk.sha256"
+          tools/changelog_section.sh "$VERSION" > "$NOTAS_PATH"
+          echo "Artefactos:"
+          ls -l "$apk" "$apk.sha256" "$NOTAS_PATH"
+
+      - name: Publicar la release en GitHub
+        uses: softprops/action-gh-release@v2
+        with:
+          name: n8n Connect v${{ env.VERSION }}
+          tag_name: ${{ github.ref_name }}
+          body_path: ${{ runner.temp }}/RELEASE_NOTES.md
+          files: |
+            n8n-connect-v${{ env.VERSION }}.apk
+            n8n-connect-v${{ env.VERSION }}.apk.sha256
+          fail_on_unmatched_files: true
+
+      - name: Borrar el keystore y key.properties
+        if: always()
+        run: rm -f "$RUNNER_TEMP/release.jks" android/key.properties

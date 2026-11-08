@@ -1,0 +1,54 @@
+{
+  "project_info": {
+    "project_number": "REPLACE_WITH_PROJECT_NUMBER",
+    "project_id": "REPLACE_WITH_PROJECT_ID",
+    "storage_bucket": "REPLACE_WITH_STORAGE_BUCKET"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "REPLACE_WITH_MOBILESDK_APP_ID",
+        "android_client_info": {
+          "package_name": "me.bilibc.n8n_connect"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "REPLACE_WITH_ANDROID_CLIENT_ID",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "me.bilibc.n8n_connect",
+            "certificate_hash": "REPLACE_WITH_SHA1_CERTIFICATE_HASH"
+          }
+        },
+        {
+          "client_id": "REPLACE_WITH_WEB_CLIENT_ID",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "REPLACE_WITH_API_KEY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "REPLACE_WITH_WEB_CLIENT_ID",
+              "client_type": 3
+            },
+            {
+              "client_id": "REPLACE_WITH_IOS_CLIENT_ID",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.n8nConnect"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

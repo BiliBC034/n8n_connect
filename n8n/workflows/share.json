@@ -1,0 +1,263 @@
+{
+  "name": "n8n Connect · Compartir",
+  "nodes": [
+    {
+      "id": "1e597096-602b-48c6-b4d4-889f2ba951ec",
+      "name": "Compartido desde el móvil",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.2,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "n8n-connect/share",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "credentials": {
+        "jwtAuth": {
+          "id": "REPLACE_CREDENTIAL_ID:n8n Connect JWT",
+          "name": "n8n Connect JWT"
+        }
+      },
+      "webhookId": "e594f29b-c69f-463b-bd93-a20f38790bcd"
+    },
+    {
+      "id": "3559c84d-520d-4db4-ba5c-92bae06b3d21",
+      "name": "Validar contenido",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        0
+      ],
+      "parameters": {
+        "jsCode": "// Texto/enlace compartido desde otra app del móvil\nconst req = $(\"Compartido desde el móvil\").first().json;\nconst body = req.body ?? {};\nconst text = String(body.text ?? \"\").trim();\nif (!text) return [{ json: { ok: false, error: { code: \"empty\", message: \"No hay nada que guardar.\" } } }];\nreturn [{ json: {\n  ok: true,\n  email: String(req.jwtPayload?.email ?? \"\"),\n  text: text.slice(0, 10000),\n  subject: String(body.subject ?? \"\").trim().slice(0, 300),\n  note: String(body.note ?? \"\").trim().slice(0, 2000),\n  isLink: /^https?:\\/\\/\\S+$/.test(text),\n} }];"
+      }
+    },
+    {
+      "id": "3092eb58-b28d-4de0-bef0-6ee7b47609f0",
+      "name": "¿Hay contenido?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        480,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.ok }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "d22d3bea-8091-4c16-a3de-f051c893bd83",
+      "name": "Guardar en nc_inbox",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        720,
+        -80
+      ],
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "REPLACE_DATA_TABLE_ID:nc_inbox",
+          "cachedResultName": "nc_inbox"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "email": "={{ $json.email }}",
+            "text": "={{ $json.text }}",
+            "subject": "={{ $json.subject }}",
+            "note": "={{ $json.note }}",
+            "received_at": "={{ $now.toISO() }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "email",
+              "displayName": "email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "text",
+              "displayName": "text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "subject",
+              "displayName": "subject",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "note",
+              "displayName": "note",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "received_at",
+              "displayName": "received_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "518fc471-0ae8-4e17-85a9-b32a3c8a171f",
+      "name": "Responder guardado",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        960,
+        -80
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { message: $(\"Validar contenido\").first().json.isLink ? \"Enlace guardado en n8n\" : \"Texto guardado en n8n\" } }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "3dd0b41b-56be-4a95-9a57-52e309aad0f7",
+      "name": "Responder vacío",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        720,
+        128
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { error: $json.error } }}",
+        "options": {
+          "responseCode": 400
+        }
+      }
+    },
+    {
+      "id": "181e0c55-c744-4bbc-b4de-69b548b7fd2a",
+      "name": "Sticky Note 092dcad4",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        208,
+        -176
+      ],
+      "parameters": {
+        "content": "## Compartir con n8n\nRecibe lo que compartes desde cualquier app del móvil (\"Compartir → n8n Connect\") y lo guarda en **nc_inbox**.\n\nAmplíalo a tu gusto después de \"Guardar\": resumir el enlace con IA, mandarlo a Discord, crear una tarea… La respuesta puede incluir `actions` que la app ejecutará.",
+        "height": 432,
+        "width": 880,
+        "color": 5
+      }
+    }
+  ],
+  "connections": {
+    "Compartido desde el móvil": {
+      "main": [
+        [
+          {
+            "node": "Validar contenido",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar contenido": {
+      "main": [
+        [
+          {
+            "node": "¿Hay contenido?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Hay contenido?": {
+      "main": [
+        [
+          {
+            "node": "Guardar en nc_inbox",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Responder vacío",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guardar en nc_inbox": {
+      "main": [
+        [
+          {
+            "node": "Responder guardado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

@@ -1,0 +1,471 @@
+{
+    "@@locale": "en",
+    "languageName": "English",
+    "appTitle": "n8n Connect",
+    "@appTitle": {
+        "description": "The title of the application"
+    },
+    "settingsTitle": "Settings",
+    "settingsTooltip": "Settings",
+    "loginPageTitle": "Login",
+    "signupPageTitle": "Sign Up",
+    "emailLabel": "Email",
+    "passwordLabel": "Password",
+    "confirmPasswordLabel": "Confirm Password",
+    "loginButton": "Login",
+    "signupButton": "Sign Up",
+    "orSignInWith": "Or sign in with",
+    "dontHaveAccount": "Don't have an account?",
+    "alreadyHaveAccount": "Already have an account?",
+    "logoutButton": "Sign Out",
+    "deleteAccountButton": "Delete Account",
+    "saveButton": "Save",
+    "dialogActionCancel": "Cancel",
+    "dialogActionConfirm": "Confirm",
+    "errorLoginFailed": "Login failed: {message}",
+    "@errorLoginFailed": {
+        "placeholders": {
+            "message": {}
+        }
+    },
+    "errorSignupFailed": "Sign up failed: {message}",
+    "@errorSignupFailed": {
+        "placeholders": {
+            "message": {}
+        }
+    },
+    "errorGeneric": "An unexpected error occurred.",
+    "errorTitle": "Error",
+    "errorPageNotFound": "Page not found: {error}",
+    "@errorPageNotFound": {
+        "placeholders": {
+            "error": {}
+        }
+    },
+    "cancelButton": "Cancel",
+    "deleteButton": "Delete",
+    "errorUserNotLoggedIn": "Error: User not logged in.",
+    "settingsEmailLabel": "Email",
+    "settingsDisplayNameLabel": "Display Name",
+    "settingsDisplayNameHint": "Enter your display name",
+    "settingsSaveNameTooltip": "Save Name",
+    "settingsChangePasswordTile": "Change Password",
+    "settingsCurrentPasswordLabel": "Current Password",
+    "settingsNewPasswordLabel": "New Password",
+    "settingsConfirmNewPasswordLabel": "Confirm New Password",
+    "settingsUpdatePasswordButton": "Update Password",
+    "selectedBingoCard": "Selected Bingo Card",
+    "settingsSignOutTile": "Sign Out",
+    "settingsDeleteAccountTile": "Delete Account",
+    "settingsConfirmDeleteTitle": "Confirm Account Deletion",
+    "settingsConfirmDeletePasswordPrompt": "For security, please enter your current password to delete your account. This action cannot be undone.",
+    "settingsConfirmDeleteNoPasswordPrompt": "Are you sure you want to delete your account? This action cannot be undone.",
+    "settingsConfirmDeleteButton": "Confirm Delete",
+    "successDisplayNameUpdated": "Display name updated successfully!",
+    "successPasswordUpdated": "Password updated successfully!",
+    "successAccountDeleted": "Account deleted successfully.",
+    "errorUpdateDisplayName": "Failed to update display name.",
+    "errorUpdatePassword": "Failed to update password.",
+    "errorDeleteAccount": "Failed to delete account.",
+    "errorReauthenticationFailed": "Re-authentication failed: {message}",
+    "@errorReauthenticationFailed": {
+        "placeholders": {
+            "message": {}
+        }
+    },
+    "errorRequiresRecentLogin": "This operation requires you to have recently signed in. Please sign out and sign back in, then try again.",
+    "userNotLoaded": "User not loaded.",
+    "backToHomeTooltip": "Back to Home",
+    "languageSettings": "Language",
+    "languageTitle": "Select Language",
+    "useDeviceLanguage": "Use Device Language",
+    "englishLanguage": "English",
+    "spanishLanguage": "Spanish",
+    "themeSettings": "Theme",
+    "lightTheme": "Light",
+    "darkTheme": "Dark",
+    "systemTheme": "System Default",
+    "saveDetailsButton": "Save Details",
+    "errorRequiredField": "Please fill in all required fields.",
+    "errorPasswordsDoNotMatch": "Passwords do not match.",
+    "errorPasswordTooShort": "Password must be at least 6 characters.",
+    "homePageTitle": "Home",
+    "userLabel": "User",
+    "errorNetwork": "Could not reach the server. Check your connection.",
+    "errorTimeout": "The server took too long to respond.",
+    "errorSessionInvalid": "Your session with the server expired. Connect again.",
+    "errorWebhookNotFound": "That webhook does not exist. Is the workflow published in n8n?",
+    "errorBadResponse": "Unexpected response from the server.",
+    "errorNotN8nConnect": "This URL is not an n8n Connect server (publish the 'n8n Connect · Core' workflow).",
+    "errorUnsupportedProtocol": "The server uses a newer protocol version. Update the app.",
+    "errorWrongFirebaseProject": "This server is set up for a different app (Firebase project).",
+    "errorNotConnected": "Not connected to any server.",
+    "errorSignedOut": "Sign in first.",
+    "errorNotAllowed": "Your account is not allowed on this server.",
+    "errorEmailNotVerified": "Verify your email before connecting.",
+    "errorServer": "Server error ({code}).",
+    "@errorServer": {
+        "placeholders": {
+            "code": {
+                "type": "String"
+            }
+        }
+    },
+    "errorUrlEmpty": "Enter the URL of your n8n server.",
+    "errorUrlInvalid": "That URL is not valid.",
+    "errorUrlInsecure": "Only HTTPS servers are allowed: your login token would travel unencrypted.",
+    "errorUrlForeignOrigin": "Apps can only call your own n8n server.",
+    "errorDeviceAction": "The phone could not run this action (is there an app for it?).",
+    "errorInvalidAction": "The action sent by n8n has invalid parameters.",
+    "errorUnsupportedAction": "This version of the app does not support that action.",
+    "errorActionNeedsScreen": "The action '{type}' only works inside an app.",
+    "@errorActionNeedsScreen": {
+        "placeholders": {
+            "type": {
+                "type": "String"
+            }
+        }
+    },
+    "confirmActionTitle": "Continue?",
+    "actionAlarmDone": "Alarm set for {time}",
+    "@actionAlarmDone": {
+        "placeholders": {
+            "time": {
+                "type": "String"
+            }
+        }
+    },
+    "actionCopied": "Copied to clipboard",
+    "describeAlarm": "Set an alarm at {time}",
+    "@describeAlarm": {
+        "placeholders": {
+            "time": {
+                "type": "String"
+            }
+        }
+    },
+    "describeTimer": "Start a {duration} timer",
+    "@describeTimer": {
+        "placeholders": {
+            "duration": {
+                "type": "String"
+            }
+        }
+    },
+    "describeCalendarEvent": "Add calendar event: {title}",
+    "@describeCalendarEvent": {
+        "placeholders": {
+            "title": {
+                "type": "String"
+            }
+        }
+    },
+    "describeOpenUrl": "Open {url}",
+    "@describeOpenUrl": {
+        "placeholders": {
+            "url": {
+                "type": "String"
+            }
+        }
+    },
+    "describeNotify": "Show notification: {title}",
+    "@describeNotify": {
+        "placeholders": {
+            "title": {
+                "type": "String"
+            }
+        }
+    },
+    "describeCopy": "Copy text to the clipboard",
+    "describeOpenApp": "Open the app {app}",
+    "@describeOpenApp": {
+        "placeholders": {
+            "app": {
+                "type": "String"
+            }
+        }
+    },
+    "errorAppNotFound": "That app is no longer available on the server.",
+    "errorUnsupportedSpec": "This app needs a newer version of n8n Connect.",
+    "errorBadSpec": "The app sent by n8n has no screens or is malformed.",
+    "unsupportedComponent": "Unsupported component: {type}",
+    "@unsupportedComponent": {
+        "placeholders": {
+            "type": {
+                "type": "String"
+            }
+        }
+    },
+    "fieldRequired": "Fill in \"{field}\".",
+    "@fieldRequired": {
+        "placeholders": {
+            "field": {
+                "type": "String"
+            }
+        }
+    },
+    "reloadTooltip": "Reload",
+    "retryButton": "Retry",
+    "appsTitle": "My apps",
+    "appsEmpty": "No apps yet. Add a row to the nc_apps data table of your n8n server.",
+    "loginSubtitle": "Sign in to connect your phone with your n8n workflows.",
+    "loginFooter": "Your n8n server decides which accounts can connect.",
+    "connectTitle": "Connect your n8n",
+    "connectSubtitle": "Enter the address of your n8n server. It must use HTTPS and have the 'n8n Connect · Core' workflow published.",
+    "connectUrlLabel": "Server URL",
+    "connectButton": "Connect",
+    "disconnectButton": "Disconnect from server",
+    "connectSignedInAs": "Signed in as {email}",
+    "@connectSignedInAs": {
+        "placeholders": {
+            "email": {
+                "type": "String"
+            }
+        }
+    },
+    "connectAllowListHint": "This email must be enabled in the nc_users table of the server.",
+    "pushDialogTitle": "n8n wants to run actions",
+    "pushDialogIntro": "Actions:",
+    "pushDialogIgnore": "Ignore",
+    "pushDialogRun": "Run",
+    "serverSectionTitle": "n8n server",
+    "serverNotConnected": "Not connected",
+    "serverRole": "Role: {role}",
+    "@serverRole": {
+        "placeholders": {
+            "role": {
+                "type": "String"
+            }
+        }
+    },
+    "serverResync": "Re-sync device",
+    "serverResyncHint": "Renews the session and the push token on the server",
+    "serverResyncDone": "Device synced with the server",
+    "serverChange": "Change server",
+    "pushAutoRunTitle": "Run n8n actions automatically",
+    "pushAutoRunHint": "When the app is open, run pushed actions without asking",
+    "deviceIdLabel": "Device {id}…",
+    "@deviceIdLabel": {
+        "placeholders": {
+            "id": {
+                "type": "String"
+            }
+        }
+    },
+    "inboxTooltip": "n8n inbox",
+    "inboxTitle": "n8n inbox",
+    "inboxClearTooltip": "Clear inbox",
+    "inboxClearTitle": "Clear inbox?",
+    "inboxClearMessage": "All received pushes will be removed from this list.",
+    "inboxClearConfirm": "Clear",
+    "inboxEmpty": "No pushes yet",
+    "inboxEmptyHint": "Messages sent from n8n will appear here.",
+    "inboxUntitled": "n8n message",
+    "inboxRun": "Run",
+    "inboxStatusPending": "Pending",
+    "inboxStatusExecuted": "Executed",
+    "inboxStatusIgnored": "Ignored",
+    "inboxStatusFailed": "Failed",
+    "shareTitle": "Share to n8n",
+    "shareSendHint": "The text is sent to your n8n server.",
+    "shareNothingToShare": "Nothing to share yet.",
+    "shareNoteLabel": "Note (optional)",
+    "shareSendButton": "Send to n8n",
+    "shareSent": "Sent to n8n.",
+    "compDecrease": "Decrease",
+    "compIncrease": "Increase",
+    "runnerOfflineBanner": "Offline. Showing data saved at {time}.",
+    "@runnerOfflineBanner": {
+        "placeholders": {
+            "time": {
+                "type": "String"
+            }
+        }
+    },
+    "runnerUpdatedAt": "Updated {time}",
+    "@runnerUpdatedAt": {
+        "placeholders": {
+            "time": {
+                "type": "String"
+            }
+        }
+    },
+    "actShareChooser": "Share with",
+    "actDescribeShare": "Share text: {text}",
+    "@actDescribeShare": {
+        "placeholders": {
+            "text": {
+                "type": "String"
+            }
+        }
+    },
+    "actDescribeDial": "Open the dialer with {number}",
+    "@actDescribeDial": {
+        "placeholders": {
+            "number": {
+                "type": "String"
+            }
+        }
+    },
+    "actDescribeSms": "Write a text message to {number}",
+    "@actDescribeSms": {
+        "placeholders": {
+            "number": {
+                "type": "String"
+            }
+        }
+    },
+    "actDescribeEmail": "Write an email to {to}",
+    "@actDescribeEmail": {
+        "placeholders": {
+            "to": {
+                "type": "String"
+            }
+        }
+    },
+    "actDescribeMap": "Open {place} in Maps",
+    "@actDescribeMap": {
+        "placeholders": {
+            "place": {
+                "type": "String"
+            }
+        }
+    },
+    "actDescribeNavigate": "Navigate to {place}",
+    "@actDescribeNavigate": {
+        "placeholders": {
+            "place": {
+                "type": "String"
+            }
+        }
+    },
+    "actDescribeVibrate": "Vibrate the phone",
+    "actDescribeShowAlarms": "Show alarms in the Clock app",
+    "actDescribeOpenSettings": "Open {panel} settings",
+    "@actDescribeOpenSettings": {
+        "placeholders": {
+            "panel": {
+                "type": "String"
+            }
+        }
+    },
+    "actDescribeLaunchApp": "Launch the app {app}",
+    "@actDescribeLaunchApp": {
+        "placeholders": {
+            "app": {
+                "type": "String"
+            }
+        }
+    },
+    "actDescribeReadClipboard": "Read the clipboard into {key}",
+    "@actDescribeReadClipboard": {
+        "placeholders": {
+            "key": {
+                "type": "String"
+            }
+        }
+    },
+    "confirmReadClipboard": "Let this app read your clipboard and use it in n8n?",
+    "actionScheduledAlarm": "Alarm scheduled for {time}",
+    "@actionScheduledAlarm": {
+        "placeholders": {
+            "time": {
+                "type": "String"
+            }
+        }
+    },
+    "errorActionChainFailed": "n8n answered with actions that could not run.",
+    "describeScheduleAlarm": "Schedule an alarm at {time}",
+    "@describeScheduleAlarm": {
+        "placeholders": {
+            "time": {
+                "type": "String"
+            }
+        }
+    },
+    "describeCancelAlarm": "Cancel an alarm",
+    "describeReport": "Send phone data (location) to n8n",
+    "describeRequestPermission": "Ask for the {permission} permission",
+    "@describeRequestPermission": {
+        "placeholders": {
+            "permission": {
+                "type": "String"
+            }
+        }
+    },
+    "automationTitle": "Automatic actions",
+    "automationDescription": "Let this app set alarms and read your location without asking, even with the app closed.",
+    "automationRanTitle": "n8n ran an automation",
+    "automationFailedTitle": "An n8n automation failed",
+    "permLocationTitle": "Location",
+    "permLocationAlwaysTitle": "Location all the time",
+    "permNotificationsTitle": "Notifications",
+    "permLocationDescription": "Lets n8n read where the phone is while the app is open.",
+    "permLocationAlwaysDescription": "Needed so n8n can read where the phone is with the app closed, for example for the smart alarm.",
+    "permNotificationsDescription": "Lets n8n show alerts and notifications on this phone.",
+    "permGranted": "Granted",
+    "permGrant": "Grant",
+    "permOpenSettings": "Open settings",
+    "permUnavailable": "Unavailable",
+    "permAutomationsTitle": "Automations",
+    "permAutomationsHint": "Enable automatic actions from inside each app",
+    "permAlarmsTile": "n8n alarms",
+    "alarmsTitle": "n8n alarms",
+    "alarmsEmpty": "No alarms yet. Apps with automatic actions can set alarms from n8n, and they will appear here.",
+    "alarmsFromApp": "App: {app}",
+    "@alarmsFromApp": {
+        "placeholders": {
+            "app": {
+                "type": "String"
+            }
+        }
+    },
+    "alarmsPassed": "Passed",
+    "alarmsDefaultLabel": "Alarm",
+    "alarmsCancelTooltip": "Cancel alarm",
+    "alarmsCancelTitle": "Cancel this alarm?",
+    "alarmsCancelMessage": "{time} · {label} will not ring.",
+    "@alarmsCancelMessage": {
+        "placeholders": {
+            "time": {
+                "type": "String"
+            },
+            "label": {
+                "type": "String"
+            }
+        }
+    },
+    "alarmsCancelConfirm": "Cancel alarm",
+    "alarmsCancelled": "Alarm cancelled",
+    "alarmsCancelFailed": "Could not cancel the alarm.",
+    "alarmsLoadFailed": "Could not load the alarms.",
+    "alarmsRetry": "Retry",
+    "alarmsStop": "Stop",
+    "alarmsSnooze": "Snooze 5 min",
+    "onboardingSkip": "Skip",
+    "onboardingNext": "Next",
+    "onboardingDone": "Get started",
+    "onboardingWelcomeTitle": "Welcome to n8n Connect",
+    "onboardingWelcomeBody": "Use on your phone the apps you build with n8n workflows. Change a workflow and the app updates right away, with nothing new to install.",
+    "onboardingServerTitle": "Connect your server",
+    "onboardingServerBody": "Sign in with your account and enter the address of your n8n. Only accounts allowed on your server can get in, and every request carries a signed session.",
+    "onboardingAppsTitle": "Your apps, built in n8n",
+    "onboardingAppsBody": "Each app is a workflow that draws screens with forms, lists and live dashboards. When you tap a button, the workflow gets the data and replies.",
+    "onboardingActionsTitle": "Actions on your phone",
+    "onboardingActionsBody": "Workflows can set alarms, add calendar events, open maps, notify you or share content. They only run without asking if you allow it in Settings or in each app.",
+    "onboardingPermissionsTitle": "Notifications and permissions",
+    "onboardingPermissionsBody": "n8n can reach you even when the app is closed. Location is only requested when an app needs it, and you can change permissions in your phone's settings.",
+    "onboardingPageLabel": "Page {current} of {total}",
+    "@onboardingPageLabel": {
+        "placeholders": {
+            "current": {
+                "type": "int"
+            },
+            "total": {
+                "type": "int"
+            }
+        }
+    },
+    "settingsTutorialTile": "View the tutorial",
+    "settingsAboutTile": "About n8n Connect"
+}
