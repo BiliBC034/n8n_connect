@@ -1,0 +1,341 @@
+{
+  "name": "n8n Connect · App · n8n · Alerts",
+  "nodes": [
+    {
+      "id": "591f831c-9f14-4da3-ad4e-daac305e5eeb",
+      "name": "Every 5 minutes",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 5
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "442c7cf4-879a-4e04-bf4f-f797c36270e7",
+      "name": "Recent errors",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        224,
+        0
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "http://127.0.0.1:5678/api/v1/executions?status=error&limit=20",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "n8nApi",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true,
+              "responseFormat": "json"
+            }
+          },
+          "timeout": 30000
+        }
+      },
+      "credentials": {
+        "n8nApi": {
+          "id": "REPLACE_CREDENTIAL_ID:n8n API",
+          "name": "n8n API"
+        }
+      },
+      "onError": "stopWorkflow",
+      "alwaysOutputData": false
+    },
+    {
+      "id": "ec8233b5-3ab7-4057-be05-eb93d17ceff5",
+      "name": "New errors",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        0
+      ],
+      "parameters": {
+        "jsCode": "// New error executions since the last check. Ids already notified are kept in static data;\n// the first run only records the current errors so an existing backlog is not sent.\nconst res = $input.first().json;\nif (Number(res.statusCode) !== 200) {\n  throw new Error(\"n8n API: HTTP \" + res.statusCode + \" \" + JSON.stringify(res.body ?? {}).slice(0, 200));\n}\nconst st = $getWorkflowStaticData(\"global\");\nconst errors = (res.body?.data ?? []).filter((e) => e.workflowId !== $workflow.id);\nif (!Array.isArray(st.seen)) {\n  st.seen = errors.map((e) => String(e.id));\n  return [];\n}\nconst seen = new Set(st.seen);\nconst fresh = errors.filter((e) => !seen.has(String(e.id)));\nst.seen = [...fresh.map((e) => String(e.id)), ...st.seen].slice(0, 300);\nreturn fresh.slice(0, 5).map((e) => ({ json: { id: e.id, workflowId: e.workflowId, total: fresh.length } }));\n"
+      }
+    },
+    {
+      "id": "2d04c40a-70ca-406c-9479-a9170821e717",
+      "name": "Error details",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        672,
+        0
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "=http://127.0.0.1:5678/api/v1/executions/{{ $json.id }}?includeData=true",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "n8nApi",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true,
+              "responseFormat": "json"
+            }
+          },
+          "timeout": 30000
+        }
+      },
+      "credentials": {
+        "n8nApi": {
+          "id": "REPLACE_CREDENTIAL_ID:n8n API",
+          "name": "n8n API"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "alwaysOutputData": true
+    },
+    {
+      "id": "575ce66b-44ed-420c-b915-4bb83db3567b",
+      "name": "Build pushes",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        896,
+        0
+      ],
+      "parameters": {
+        "jsCode": "// One push per error (or a single summary when several fail at once).\nconst fresh = $(\"New errors\").all();\nconst details = $input.all();\nconst short = (s, max) => { const t = String(s ?? \"\"); return t.length > max ? t.slice(0, max - 1) + \"…\" : t; };\nconst errText = (e) => {\n  if (!e) return \"\";\n  const c = e.errorResponse?.content;\n  const parts = [e.message, e.description, Array.isArray(c) ? c.join(\" \") : typeof c === \"string\" ? c : \"\"]\n    .map((x) => String(x ?? \"\").trim()).filter(Boolean);\n  return [...new Set(parts)].join(\" — \") || e.name || \"\";\n};\nconst msgs = fresh.map((f, i) => {\n  const x = details[i]?.json?.body ?? {};\n  const rd = x.data?.resultData ?? {};\n  const last = rd.lastNodeExecuted;\n  const runs = last ? rd.runData?.[last] ?? [] : [];\n  const err = (runs.length ? runs[runs.length - 1]?.error : null) ?? rd.error;\n  return { name: x.workflowData?.name ?? \"Workflow \" + f.json.workflowId, node: last, text: errText(err) };\n});\nconst total = fresh[0]?.json.total ?? msgs.length;\nconst pushes = total > 3\n  ? [{ title: `${total} new errors in n8n`, body: short([...new Set(msgs.map((m) => m.name))].join(\", \") + (total > msgs.length ? \"…\" : \"\"), 230) }]\n  : msgs.map((m) => ({ title: \"Error in \" + m.name, body: short((m.node ? m.node + \": \" : \"\") + (m.text || \"no details\"), 230) }));\nreturn pushes.map((p) => ({ json: p }));\n"
+      }
+    },
+    {
+      "id": "762477e1-1692-49ce-8139-521a7a63306b",
+      "name": "Admins",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1120,
+        0
+      ],
+      "executeOnce": true,
+      "parameters": {
+        "resource": "row",
+        "operation": "get",
+        "returnAll": true,
+        "dataTableId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "REPLACE_DATA_TABLE_ID:nc_users",
+          "cachedResultName": "nc_users"
+        }
+      }
+    },
+    {
+      "id": "3a491004-328d-4d02-b500-b6aae1079ba6",
+      "name": "Recipients",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1344,
+        0
+      ],
+      "parameters": {
+        "jsCode": "// Every enabled admin of n8n Connect gets every push.\nconst pushes = $(\"Build pushes\").all().map((i) => i.json);\nconst admins = $input.all().map((i) => i.json)\n  .filter((u) => u.enabled === true && String(u.role ?? \"\") === \"admin\" && u.email);\nconst out = [];\nfor (const a of admins) for (const p of pushes) out.push({ json: { email: String(a.email).toLowerCase(), title: p.title, body: p.body } });\nreturn out;\n"
+      }
+    },
+    {
+      "id": "73deb02f-e4c6-49e8-93f6-803003564d7b",
+      "name": "Send to phone",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.4,
+      "position": [
+        1568,
+        0
+      ],
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "REPLACE_WORKFLOW_ID:send-to-phone",
+          "cachedResultName": "n8n Connect · Send to phone"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "email": "={{ $json.email }}",
+            "title": "={{ $json.title }}",
+            "body": "={{ $json.body }}",
+            "actions": "={{ [] }}",
+            "app": "n8n"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "email",
+              "displayName": "email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "title",
+              "displayName": "title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "body",
+              "displayName": "body",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "actions",
+              "displayName": "actions",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "array",
+              "removed": false
+            },
+            {
+              "id": "app",
+              "displayName": "app",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "mode": "each",
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      }
+    },
+    {
+      "id": "84fd6fe6-e136-4675-8fbc-57f0f661cfb3",
+      "name": "Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        208,
+        -272
+      ],
+      "parameters": {
+        "color": 4,
+        "width": 500,
+        "height": 240,
+        "content": "## Error alerts (n8n app)\nEvery 5 minutes it reads the error executions from the n8n API and sends a push to the n8n Connect admins (nc_users rows with role `admin`). The n8n app turns it on and off by publishing/unpublishing it, so keep this exact name.\n\nThe first run only records the existing errors (no backlog). More than 3 new errors at once: one summary push."
+      }
+    }
+  ],
+  "connections": {
+    "Every 5 minutes": {
+      "main": [
+        [
+          {
+            "node": "Recent errors",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Recent errors": {
+      "main": [
+        [
+          {
+            "node": "New errors",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "New errors": {
+      "main": [
+        [
+          {
+            "node": "Error details",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Error details": {
+      "main": [
+        [
+          {
+            "node": "Build pushes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build pushes": {
+      "main": [
+        [
+          {
+            "node": "Admins",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Admins": {
+      "main": [
+        [
+          {
+            "node": "Recipients",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Recipients": {
+      "main": [
+        [
+          {
+            "node": "Send to phone",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataSuccessExecution": "none",
+    "saveDataErrorExecution": "all"
+  }
+}

@@ -175,6 +175,17 @@
         "enabled": true,
         "allowed_emails": "",
         "sort": 30
+      },
+      {
+        "app_id": "n8n",
+        "name": "n8n",
+        "description": "Workflows, executions, errors and alerts of this server",
+        "icon": "settings",
+        "color": "#EA4B71",
+        "path": "n8n-connect/apps/n8n",
+        "enabled": false,
+        "allowed_emails": "",
+        "sort": 50
       }
     ]
   }

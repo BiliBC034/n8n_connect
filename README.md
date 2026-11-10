@@ -91,7 +91,7 @@ Requirements: Flutter 3.35 (Dart 3.9), Android SDK, and an Android phone or emul
    - Register an Android app with the package `me.bilibc.n8n_connect`. Add the SHA-1 fingerprint of your signing key (debug: `cd android && ./gradlew signingReport`), which is required for Google Sign-In, and then download its `google-services.json`.
    - Create a service account so n8n can send the pushes (see the next step).
 
-2. **n8n server.** Follow [n8n/README.md](n8n/README.md). Create the tables from `n8n/data-tables.json` (n8n does not import them: create them in the UI or with the MCP), import `n8n/workflows/`, and replace all the `REPLACE_…` placeholders (credential, table and sub-workflow IDs, web API key, project ID and server name; full list in [n8n/README.md](n8n/README.md)). Configure the credentials the nodes ask for.
+2. **n8n server.** Follow [n8n/README.md](n8n/README.md). Create the tables from `n8n/data-tables.json` (n8n does not import them: create them in the UI or with the MCP), import `n8n/workflows/` (`app-n8n.json` and `app-n8n-alerts.json` are optional and need the extra `n8n API` credential: [n8n/README.md](n8n/README.md)), and replace all the `REPLACE_…` placeholders (credential, table and sub-workflow IDs, web API key, project ID and server name; full list in [n8n/README.md](n8n/README.md)). Configure the credentials the nodes ask for.
 
 3. **Build the app.** Copy the example files to their real names (or use `flutterfire configure` to generate `lib/firebase_options.dart`):
 
@@ -120,6 +120,7 @@ An app is a GET webhook that returns its spec as JSON, plus the webhooks that re
 
 - Start from the template [n8n/workflows/app-tools.json](n8n/workflows/app-tools.json), the demo app with components and phone actions.
 - Step-by-step guide in [docs/PROTOCOL.md §5](docs/PROTOCOL.md#5-how-to-create-an-app). UI spec in [§6](docs/PROTOCOL.md#6-ui-spec-schema-1) and actions in [§7](docs/PROTOCOL.md#7-actions).
+- A second example is [n8n/workflows/app-n8n.json](n8n/workflows/app-n8n.json), an admin panel for your n8n server (workflows, executions and errors, built with the n8n API), with error alerts in [app-n8n-alerts.json](n8n/workflows/app-n8n-alerts.json). It is larger and needs the `n8n API` credential ([n8n/README.md](n8n/README.md)).
 - The repository is set up to work with AI agents. Their guidelines are in [AGENTS.md](AGENTS.md).
 
 ## Security

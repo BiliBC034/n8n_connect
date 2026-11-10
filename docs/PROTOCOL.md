@@ -906,3 +906,28 @@ Notes:
 - Without a routing-service credential in n8n, the workflow uses the fallback travel minutes.
 - The user's fallback wake-up time is used when there is no event with a location.
 - If the calculated time has already passed, `schedule_alarm` fails ([§14.4](#144-automation-actions)).
+
+### 15.4 n8n admin app
+
+An example app that manages the n8n server itself: its workflows, executions, errors, credentials and users. It calls the n8n public REST API from n8n, so it needs no extra server. The importable templates are [n8n/workflows/app-n8n.json](../n8n/workflows/app-n8n.json) (the app) and [n8n/workflows/app-n8n-alerts.json](../n8n/workflows/app-n8n-alerts.json) (error alerts). The server setup, including the `n8n API` credential, is in [n8n/README.md](../n8n/README.md).
+
+- **Access**: only users with `role` = `admin` in `nc_users`, plus the usual per-app check with `allowed_emails` ([§4](#4-tables)). App id `n8n`, path `n8n-connect/apps/n8n`.
+- **Endpoints** (JWT):
+  - `GET n8n-connect/apps/n8n`: the initial spec (the panel).
+  - `POST n8n-connect/apps/n8n/view`: body `{"view", "op", "id", "wf", "status", "nav"}`. `view` chooses the screen to build and `op` the operation to run. The other fields are used only by the screens and operations that need them.
+- **Screens**:
+  - *Panel*: metrics (workflows and how many are published, running executions, errors in the last 24 h, and executions in the last 7 days when the API key can read insights), latest errors, sections, and an *Error alerts* card with a button to turn the alerts on or off.
+  - *Workflows*, grouped by folder (folder names are cached in the workflow's static data).
+  - *Workflow*: status, folder, nodes, triggers, error workflow, tags, latest executions, node list and connections.
+  - *Executions*, filtered by all, error, running, waiting, success or canceled. *Execution*: the failing node with its error message and a summary of each node's run.
+  - *Credentials*: names and types only; the API never returns secrets.
+  - *Users and tags*, and *security audit* (`POST /audit`).
+- **Operations** (all of them ask for confirmation except turning error alerts on or off):
+  - Publish or unpublish a workflow (`POST /workflows/{id}/activate` or `/deactivate`). The app itself and the *n8n Connect · Core* and *n8n Connect · App access* workflows cannot be unpublished from the phone.
+  - Run now: Execute Workflow by id. Only for workflows that start with *When executed by another workflow* (Execute Workflow Trigger) or a Manual Trigger, and the target must be published.
+  - Retry an execution, with the original or the current version of the workflow; stop it; delete it.
+  - Turn error alerts on or off.
+- **Navigation**: a POST response returns the whole `spec` plus `screen` and `actions` (`navigate`) to rebuild the navigation stack. A spec alone in a submit response resets the stack to `start` ([§8](#8-submit-response)).
+- **Error alerts** (*n8n Connect · App · n8n · Alerts*): every 5 minutes it reads the latest failed executions (`GET /executions?status=error&limit=20`) and keeps the IDs it has already seen in its static data. The first run only records the existing errors, so the phone is not flooded. Each new error is read with its data and sent through the [Send to phone](#9-push-n8n--phone) sub-workflow to every enabled `nc_users` row with `role` = `admin`: one push per error, or one summary when more than 3 fail at once. The app turns it on and off by publishing and unpublishing the workflow, which it finds by its exact name. The push needs the `n8n Connect FCM` credential set up for HTTP Request nodes ([n8n/README.md §6](../n8n/README.md#6-troubleshooting)).
+- **Scopes**: the key of the `n8n API` credential needs these scopes: `workflow:list`, `workflow:read`, `workflow:activate`, `workflow:deactivate`, `execution:list`, `execution:read`, `execution:delete`, `execution:retry`, `execution:stop`, `credential:list`, `insights:read`, `securityAudit:generate`, `user:list` and `tag:list`. If a scope is missing, its section shows a banner instead of failing. Projects, folders and variables need an Enterprise license and are not used. The API address `http://127.0.0.1:5678/api/v1` is hard-coded in five places (the `API` constant of the Code nodes *Plan op*, *Plan fetch* and *Plan folders*, and the URLs of the HTTP Request nodes *Recent errors* and *Error details*); the Base URL of the `n8n API` credential only affects its connection test.
+- **Saving and time zone**: both workflows set `saveDataSuccessExecution` to `none` (the app is called often and the alerts run every 5 minutes); errors are kept. The time zone is the constant `TZ` (default `UTC`) at the top of the *Build spec* Code node.

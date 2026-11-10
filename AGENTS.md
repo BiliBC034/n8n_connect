@@ -86,7 +86,7 @@ The full guide (credentials, placeholders, tests and common problems) is in [n8n
    - `n8n Connect JWT`: type "JWT Auth", with an HS256 passphrase and a long random secret (for example `openssl rand -base64 48`).
    - `n8n Connect FCM`: type "Google Service Account API", with the Firebase service account and the scope `https://www.googleapis.com/auth/firebase.messaging`.
 3. **Tables.** Create `nc_users`, `nc_devices`, `nc_apps` and `nc_inbox` according to [n8n/data-tables.json](n8n/data-tables.json) and [§4 of the protocol](docs/PROTOCOL.md#4-tables). Note their IDs.
-4. **Import** in this order: `app-access` and `send-to-phone` (sub-workflows, so you know their IDs), then `core`, `share` and `app-tools`. Replace the placeholders in the table below.
+4. **Import** in this order: `app-access` and `send-to-phone` (sub-workflows, so you know their IDs), then `core`, `share` and `app-tools`, and then, optionally, `app-n8n` and `app-n8n-alerts`. Replace the placeholders in the table below.
 5. **Publish** each workflow (Publish button in n8n 2.x). A webhook that is not published responds with 404.
 6. **Test** with `GET https://YOUR-SERVER/webhook/n8n-connect/info`: it must return `service: "n8n-connect"`, `protocol: 1`, the server name and the Firebase project ID.
 7. **Grant access**: add a row in `nc_users` with the account's email in lowercase, `enabled` set to `true`, and `role` and `name`. Without a row, `auth` responds `not_allowed`.
@@ -94,14 +94,17 @@ The full guide (credentials, placeholders, tests and common problems) is in [n8n
 
 | Placeholder | Replace with | Used in |
 |---|---|---|
-| `REPLACE_CREDENTIAL_ID:n8n Connect JWT` | ID of the JWT Auth credential | `core`, `share`, `app-tools` |
+| `REPLACE_CREDENTIAL_ID:n8n Connect JWT` | ID of the JWT Auth credential | `core`, `share`, `app-tools`, `app-n8n` |
 | `REPLACE_CREDENTIAL_ID:n8n Connect FCM` | ID of the Google Service Account credential | `send-to-phone` |
-| `REPLACE_DATA_TABLE_ID:<table>` | ID of each data table | `nc_users`: `core`. `nc_devices`: `core`, `send-to-phone`. `nc_apps`: `core`, `app-access`. `nc_inbox`: `share`, `app-tools` |
-| `REPLACE_WORKFLOW_ID:app-access` | ID of the workflow "n8n Connect · App access" | `app-tools` |
-| `REPLACE_WORKFLOW_ID:send-to-phone` | ID of the workflow "n8n Connect · Send to phone" | `app-tools` |
+| `REPLACE_CREDENTIAL_ID:n8n API` | ID of the n8n API credential | `app-n8n`, `app-n8n-alerts` |
+| `REPLACE_DATA_TABLE_ID:<table>` | ID of each data table | `nc_users`: `core`, `app-n8n-alerts`. `nc_devices`: `core`, `send-to-phone`. `nc_apps`: `core`, `app-access`. `nc_inbox`: `share`, `app-tools` |
+| `REPLACE_WORKFLOW_ID:app-access` | ID of the workflow "n8n Connect · App access" | `app-tools`, `app-n8n` |
+| `REPLACE_WORKFLOW_ID:send-to-phone` | ID of the workflow "n8n Connect · Send to phone" | `app-tools`, `app-n8n-alerts` |
 | `REPLACE_FIREBASE_WEB_API_KEY` | Firebase web API key | `core` (ID token verification) |
 | `REPLACE_FIREBASE_PROJECT_ID` | Firebase project ID | `core` (info), `send-to-phone` (FCM URL) |
 | `REPLACE_SERVER_NAME` | Display name of the server | `core` (info and session) |
+
+- **Hard-coded n8n API address.** The n8n admin app calls the n8n API at `http://127.0.0.1:5678`, hard-coded in 5 places: the `API` constant of the Code nodes *Plan op*, *Plan fetch* and *Plan folders* (`app-n8n.json`), and the URLs of the HTTP Request nodes *Recent errors* and *Error details* (`app-n8n-alerts.json`).
 
 **An AI agent** can, with the public API or the n8n MCP: import the templates (`POST /api/v1/workflows`; the JSON only carries `name`, `nodes`, `connections` and `settings`), create tables and rows, look up IDs, publish and test the webhooks. In the n8n MCP, the names are `create_data_table`, `add_data_table_rows`, `search_data_tables`, `list_credentials` and `publish_workflow`. Creating credentials does not appear among its tools: a person does that.
 
@@ -118,7 +121,7 @@ Operational summary. Details in the protocol: [§5 How to create an app](docs/PR
 3. **Submit webhooks**, one per server action, for example `POST n8n-connect/apps/<id>/greet`.
 4. **Authentication**: all of them with *Authentication = "JWT Auth"* and the `n8n Connect JWT` credential. The verified claims arrive in `$json.jwtPayload` (`email`, `did`, `role`…).
 5. **Access control**: right after each Webhook, call the sub-workflow `n8n Connect · App access` with `app_id` and `email` (`jwtPayload.email`). If it returns `allowed: false`, respond 403 with `{error: {code: "app_forbidden", message}}` (the `error` from the sub-workflow), as in the template. Without this check, `allowed_emails` only filters the catalog and does not block the webhooks.
-6. **Starting point**: duplicate `n8n/workflows/app-tools.json`, the demo app that uses almost all components and actions. Change its path and its `app_id` (in the template, the Access nodes have `app_id: "tools"` hard-coded).
+6. **Starting point**: duplicate `n8n/workflows/app-tools.json`, the demo app that uses almost all components and actions. Change its path and its `app_id` (in the template, the Access nodes have `app_id: "tools"` hard-coded). `n8n/workflows/app-n8n.json` is a second, larger example: dynamic screens built from an API, operations with confirmation, and navigation rebuilt with `screen` + `actions`.
 
 ### 6.2 UI spec (schema 1)
 
