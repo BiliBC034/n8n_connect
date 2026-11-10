@@ -74,3 +74,6 @@ cuenta-servicio*.json
 *.apk
 *.aab
 /dist/
+
+# Google Cloud service-account keys as downloaded (<project-id>-<12 hex>.json)
+*-[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f].json
