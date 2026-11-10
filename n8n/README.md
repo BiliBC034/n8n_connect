@@ -56,7 +56,8 @@ Create three credentials with these exact names. The third one (`n8n API`) is on
 - Algorithm: `HS256`.
 
 **`n8n Connect FCM`** (type *Google Service Account API*, `googleApi`):
-- Email and private key of the service account (from the JSON in step a).
+- Email and private key of the service account (from the JSON in step a). Use the Firebase Admin SDK account (`firebase-adminsdk-…`), which can send messages.
+- **Private Key on one line**: the field is single-line, so pasting the multi-line key drops its line breaks and signing fails with `secretOrPrivateKey must be an asymmetric key when using RS256`. Paste it as it appears inside the JSON, with literal `\n` and without the quotes; n8n turns them into line breaks. To copy it that way: `python3 -c "import json;print(json.dumps(json.load(open('KEY.json'))['private_key'])[1:-1],end='')"`.
 - Scope: `https://www.googleapis.com/auth/firebase.messaging`.
 - Turn on *Set up for use in HTTP Request node*. Without it, FCM answers `401` with `CREDENTIALS_MISSING` ([§6](#6-troubleshooting)).
 - It is used by the HTTP Request node in `send-to-phone` (the template already has it configured).
@@ -301,6 +302,7 @@ The codes come from [docs/PROTOCOL.md](../docs/PROTOCOL.md) and from the node co
   2. That `REPLACE_FIREBASE_PROJECT_ID` in the Send FCM URL is the project's ID.
   3. That your `nc_devices` row has `fcm_token` and the correct email. Without a token nothing is sent. The response `{"sent": 0, "reason": "no_devices"}` means the user has no devices with a token (PROTOCOL §9).
   4. That you have not signed out on the phone (logout deletes the `fcm_token`).
+- **Send FCM fails with `secretOrPrivateKey must be an asymmetric key when using RS256`.** The private key lost its line breaks when it was pasted. Paste it on one line with literal `\n` (see [§3.b](#b-credentials-in-n8n)).
 - **FCM answers `401` with `CREDENTIALS_MISSING`.** The Google credential does not reach the HTTP Request node of *Send FCM*. Open `n8n Connect FCM`, turn on *Set up for use in HTTP Request node* and check the scope `https://www.googleapis.com/auth/firebase.messaging`.
 - **Errors that are not JSON, or that the app reads as an expired session.** The app treats a 401 without `error.code` and a 403 whose body is not a JSON object as `session_invalid` (PROTOCOL §3.6). A 401 with `{"error": {"code": "..."}}` keeps its code. For your own rejections use 403 (or 400/404) with `{"error": {"code": "...", "message": "..."}}`, and never a 401 for an app permission.
 - **502, 504 or cut-off requests.** If you put a proxy such as Cloudflare in front of n8n, it replaces the body of 502/504 responses and cuts requests at 100 s (error 524): respond with 4xx or 424 and keep each request under that limit. If a dependency fails, respond 424 with `error.code` and `error.message` (PROTOCOL §8). The app waits up to 150 s on submit (`AppConfig.submitTimeout`).
