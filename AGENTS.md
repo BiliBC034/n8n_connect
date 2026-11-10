@@ -22,7 +22,7 @@ Repository map:
 | `lib/core/` | Protocol constants (`app_config.dart`), router, `{{…}}` templates, JSON utilities and log |
 | `lib/features/actions/` | Action types (`action_spec.dart`), executor (`action_executor.dart`) and device actions |
 | `lib/features/alarms/` | The app's own alarms (`schedule_alarm`): engine, alert screen and list |
-| `lib/features/apps/` | Catalog, app runner, component rendering (`spec_view.dart`), icons (`app_style.dart`) and offline cache |
+| `lib/features/apps/` | Catalog, app runner, component rendering (`spec_view.dart`), node map of the `graph` component (`flow_graph.dart`), icons (`app_style.dart`) and offline cache |
 | `lib/features/auth/` | Firebase sign-in (email and password, or Google) and email verification |
 | `lib/features/automation/` | Per-app automation permission and execution of pushes with the app closed |
 | `lib/features/device_context/` | Phone data (time zone, location) and system permissions |
@@ -143,7 +143,7 @@ Top-level fields: `schema` (1 by default; greater than 1 gives `unsupported_spec
 
 ### 6.3 Components
 
-The 24 `type` values the app draws (`lib/features/apps/spec_view.dart`). An unknown `type` shows "Unsupported component" and does not break the screen.
+The 25 `type` values the app draws (`lib/features/apps/spec_view.dart`). An unknown `type` shows "Unsupported component" and does not break the screen.
 
 - `text`: text (`text`, `style` `title`/`subtitle`/`caption`, `align`). Supports templates.
 - `banner`: notice with `tone` `info`, `success`, `warning` or `error`.
@@ -167,6 +167,7 @@ The 24 `type` values the app draws (`lib/features/apps/spec_view.dart`). An unkn
 - `metric`: indicator (`label`, `value`, `unit`, `icon`, `tone` `success`/`warning`/`error`, `caption`).
 - `grid`: rows of equal-width columns (`columns`, from 1 to 4) with child `components`.
 - `table`: read-only table (`columns`, `rows`).
+- `graph`: vertical node map (`nodes` `{id, label, subtitle, icon, tone, badge, action / actions}`, `edges` `{from, to, label, dashed}`); nodes with actions are tappable.
 - `automation` ([§14.7](docs/PROTOCOL.md#147-automation-and-permission-components)): toggle for the app's automation permission.
 - `permission` ([§14.7](docs/PROTOCOL.md#147-automation-and-permission-components)): status and button of a permission (`location`, `location_always`, `notifications`).
 

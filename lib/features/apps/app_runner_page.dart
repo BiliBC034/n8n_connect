@@ -61,6 +61,19 @@ class _AppRunnerPageState extends State<AppRunnerPage>
   final Map<String, dynamic> _state = {};
   final List<String> _stack = [];
 
+  /// Scroll offset of each screen, so going back returns to where the user
+  /// was and a newly opened screen starts at the top.
+  final Map<String, double> _offsets = {};
+
+  /// Controller of the screen on top, recreated when another screen shows.
+  ScrollController? _scroll;
+  String? _scrollScreen;
+
+  /// While a workflow response rebuilds the stack, the screens that were open
+  /// before it: they keep their saved offsets when the stack passes through
+  /// them again. Any other screen opened then starts at the top.
+  Set<String>? _keepOffsets;
+
   AppsRepository get _repository => context.read<AppsRepository>();
   ActionExecutor get _executor => context.read<ActionExecutor>();
 
@@ -75,7 +88,26 @@ class _AppRunnerPageState extends State<AppRunnerPage>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _refreshTimer?.cancel();
+    _scroll?.dispose();
     super.dispose();
+  }
+
+  /// Controller for [screen]. A new one (with a new list, see [_body]) is made
+  /// when the screen on top changes. Every list it attaches to (also after a
+  /// loading spinner replaced it) starts at the screen's saved offset.
+  ScrollController _scrollFor(String screen) {
+    final current = _scroll;
+    if (current != null && _scrollScreen == screen) return current;
+    if (current != null) {
+      // The old list is unmounted in this frame; dispose its controller after.
+      WidgetsBinding.instance.addPostFrameCallback((_) => current.dispose());
+    }
+    final controller = _SavedOffsetController(() => _offsets[screen] ?? 0);
+    controller.addListener(() {
+      if (controller.hasClients) _offsets[screen] = controller.offset;
+    });
+    _scrollScreen = screen;
+    return _scroll = controller;
   }
 
   @override
@@ -238,6 +270,10 @@ class _AppRunnerPageState extends State<AppRunnerPage>
       if (index >= 0) {
         _stack.removeRange(index + 1, _stack.length);
       } else {
+        // A screen opened anew starts at the top.
+        if (!(_keepOffsets?.contains(screen) ?? false)) {
+          _offsets.remove(screen);
+        }
         _stack.add(screen);
       }
     });
@@ -314,19 +350,30 @@ class _AppRunnerPageState extends State<AppRunnerPage>
   }
 
   Future<void> _applyResponse(ActionResponse response) async {
-    setState(() {
-      // A live answer: the screen is no longer showing saved data.
-      _cachedAt = null;
-      final spec = response.spec;
-      if (spec != null) _applySpec(spec);
-      _state.addAll(response.state);
-    });
-    final screen = response.screen;
-    if (screen != null) navigate(screen);
-    final message = response.message;
-    if (message != null && message.isNotEmpty) showAppSnackBar(message);
-    if (response.actions.isNotEmpty) {
-      await _executor.run(response.actions, host: this, appId: widget.appId);
+    // A response may replace the spec and rebuild the stack with `screen` and
+    // `navigate` actions (or `reload` + `navigate`). The screens that were
+    // open keep their positions (a refresh of the same screen stays where it
+    // was); a screen that was not open starts at the top. Nested submits
+    // among the actions add to the set and restore it when they finish.
+    final previous = _keepOffsets;
+    _keepOffsets = {..._stack, ...?previous};
+    try {
+      setState(() {
+        // A live answer: the screen is no longer showing saved data.
+        _cachedAt = null;
+        final spec = response.spec;
+        if (spec != null) _applySpec(spec);
+        _state.addAll(response.state);
+      });
+      final screen = response.screen;
+      if (screen != null) navigate(screen);
+      final message = response.message;
+      if (message != null && message.isNotEmpty) showAppSnackBar(message);
+      if (response.actions.isNotEmpty) {
+        await _executor.run(response.actions, host: this, appId: widget.appId);
+      }
+    } finally {
+      _keepOffsets = previous;
     }
   }
 
@@ -390,9 +437,13 @@ class _AppRunnerPageState extends State<AppRunnerPage>
       );
     }
     final cachedAt = _cachedAt;
+    final screenId = _stack.last;
     return RefreshIndicator(
       onRefresh: _load,
       child: ListView(
+        // One list per screen, so each starts at its own saved offset.
+        key: ValueKey('screen:$screenId'),
+        controller: _scrollFor(screenId),
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
         children: [
           if (cachedAt != null) _OfflineBanner(savedAt: cachedAt),
@@ -507,4 +558,15 @@ class _ErrorView extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Scroll controller whose initial offset is read when a list attaches, so a
+/// list rebuilt after a spinner or an error starts at the latest saved offset.
+class _SavedOffsetController extends ScrollController {
+  _SavedOffsetController(this._saved);
+
+  final double Function() _saved;
+
+  @override
+  double get initialScrollOffset => _saved();
 }

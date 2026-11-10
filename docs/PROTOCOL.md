@@ -400,8 +400,26 @@ Response of the app's GET:
 | `metric` | `label`, `value`, `unit`, `icon`, `tone`, `caption` | Indicator card: label, large value, unit and optional footer. `tone` `success` (green), `warning` (amber) or `error` colors the value; any other value uses the normal color |
 | `grid` | `columns` (2; clamped to 1–4), `components` | Rows of equal columns separated by 12 px. Children with `visible` false are removed before laying out, so the rest is reflowed. Each child is drawn like any other component |
 | `table` | `columns` (headers), `rows` (lists of cells) | Read-only table with horizontal scrolling. Short rows are padded with empty cells, long rows are cut to the number of headers, and rows that are not lists are skipped. Without `columns` nothing is shown |
+| `graph` | `nodes`: `[{id, label, subtitle, icon, tone, badge, action / actions}]`; `edges`: `[{from, to, label, dashed}]` | Vertical node map, top to bottom, with as many columns as the width allows. `id` is required and must be unique; `label` defaults to `id`. `tone` `success` (green), `warning` (amber), `error` (red) or `muted` (half opacity). `label`, `subtitle`, `badge`, `tone` and the edge `label` support templates. Nodes with actions are tappable (not while a submit runs). Edges with unknown ids are ignored; a repeated edge is drawn once. Each independent flow (nodes joined by edges) is drawn as its own block, in the order of its first node, and nodes without edges go together in a last block. Edges leave from the bottom of a node and enter at the top; several outputs or inputs of one node are spread along its side and the edge `label` is shown next to the output. An edge that would cross other nodes goes down the left side, and an edge into a node that is already on the path (a loop) goes up the right side. `dashed` edges have no arrowhead |
 
 In the newer components, `min`, `max`, `step`, `value` and `columns` accept templates; they are read as numbers after resolution. Text fields also accept templates.
+
+Example of a `graph` (the `icon` names are the ones in the table above):
+
+```json
+{
+  "type": "graph",
+  "nodes": [
+    {"id": "Webhook", "label": "Webhook", "subtitle": "webhook", "icon": "bolt", "tone": "success", "badge": "3 items"},
+    {"id": "Code", "label": "Code", "subtitle": "transform"},
+    {"id": "Notify", "label": "Notify", "tone": "error", "action": {"type": "toast", "message": "Failed"}}
+  ],
+  "edges": [
+    {"from": "Webhook", "to": "Code"},
+    {"from": "Code", "to": "Notify", "label": "false", "dashed": true}
+  ]
+}
+```
 
 An unknown `type` is shown as "Unsupported component: <type>". It does not break the screen.
 
@@ -918,8 +936,8 @@ An example app that manages the n8n server itself: its workflows, executions, er
 - **Screens**:
   - *Panel*: metrics (workflows and how many are published, running executions, errors in the last 24 h, and executions in the last 7 days when the API key can read insights), latest errors, sections, and an *Error alerts* card with a button to turn the alerts on or off.
   - *Workflows*, grouped by folder (folder names are cached in the workflow's static data).
-  - *Workflow*: status, folder, nodes, triggers, error workflow, tags, latest executions, node list and connections.
-  - *Executions*, filtered by all, error, running, waiting, success or canceled. *Execution*: the failing node with its error message and a summary of each node's run.
+  - *Workflow*: status, folder, nodes, triggers, error workflow, tags, latest executions and the node map (`graph` component).
+  - *Executions*, filtered by all, error, running, waiting, success or canceled. *Execution*: the failing node with its error message, the node map with the run status of each node (ran, failed or did not run, and the items each one returned) and a summary of each node's run.
   - *Credentials*: names and types only; the API never returns secrets.
   - *Users and tags*, and *security audit* (`POST /audit`).
 - **Operations** (all of them ask for confirmation except turning error alerts on or off):

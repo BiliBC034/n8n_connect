@@ -11,8 +11,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - **Firebase App Distribution** for tester builds, from a manual run of the "Release" workflow or with `tools/distribute.sh`. Optional secret: `FIREBASE_APP_DISTRIBUTION_SA_BASE64`.
 - **n8n admin app** example (`n8n/workflows/app-n8n.json`): panel, workflows, executions, errors, credentials and security audit of the n8n server, with confirmed operations (publish, run, retry, stop, delete), and its **error alerts** workflow (`app-n8n-alerts.json`), which sends a push to the admins for each new failed execution (or one summary when several fail at once).
 
+- **`graph` component**: vertical node map (n8n style) whose columns adapt to the screen width, with one block per independent flow, spread output ports, labelled edges, side lanes for long edges and loops, and tappable nodes. The n8n admin app uses it for the workflow and execution detail.
+
 ### Changed
 
+- Going back to a screen restores its scroll position, and a newly opened screen starts at the top.
 - Documentation, templates (workflow and node names, example app texts), scripts and CI translated to English.
 
 ## [1.0.0] - 2026-11-08

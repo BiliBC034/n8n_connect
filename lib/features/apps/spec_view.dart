@@ -9,6 +9,7 @@ import '../automation/automation_switch.dart';
 import '../device_context/device_context.dart';
 import '../device_context/permission_tile.dart';
 import 'app_style.dart';
+import 'flow_graph.dart';
 
 typedef StateChanged = void Function(String key, Object? value);
 typedef ActionsRequested = Future<void> Function(List<ActionSpec> actions);
@@ -158,6 +159,13 @@ class SpecView extends StatelessWidget {
         return _grid(context, c);
       case 'table':
         return _table(c);
+      case 'graph':
+        return FlowGraphView(
+          component: c,
+          state: state,
+          enabled: enabled,
+          onActions: onActions,
+        );
       default:
         return Text(
           AppLocalizations.of(context).unsupportedComponent(type),
@@ -538,23 +546,25 @@ class SpecView extends StatelessWidget {
     for (var start = 0; start < items.length; start += columns) {
       final rowItems = items.skip(start).take(columns).toList();
       if (start > 0) rows.add(const SizedBox(height: 12));
-      rows.add(
-        IntrinsicHeight(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              for (var i = 0; i < columns; i++) ...[
-                if (i > 0) const SizedBox(width: 12),
-                Expanded(
-                  child: i < rowItems.length
-                      ? _component(context, rowItems[i])
-                      : const SizedBox.shrink(),
-                ),
-              ],
-            ],
-          ),
-        ),
+      // A graph sizes itself from its width (LayoutBuilder), which cannot
+      // report an intrinsic height: rows with one are top-aligned instead.
+      final stretch = !rowItems.any((item) => item['type'] == 'graph');
+      final row = Row(
+        crossAxisAlignment: stretch
+            ? CrossAxisAlignment.stretch
+            : CrossAxisAlignment.start,
+        children: [
+          for (var i = 0; i < columns; i++) ...[
+            if (i > 0) const SizedBox(width: 12),
+            Expanded(
+              child: i < rowItems.length
+                  ? _component(context, rowItems[i])
+                  : const SizedBox.shrink(),
+            ),
+          ],
+        ],
       );
+      rows.add(stretch ? IntrinsicHeight(child: row) : row);
     }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
